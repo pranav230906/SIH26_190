@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-ink: #1b2430;
+  --color-muted: #4d5d6c;
+  --color-paper: #f3f5f7;
+  --color-line: #d5dee6;
+  --color-navy: #0e2740;
+  --color-navy-700: #1b4266;
+  --color-brass: #8a6b32;
+  --color-danger: #8c2f2f;
+  --color-danger-bg: #f8ecec;
+  --color-ok: #1d6b45;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid #0e2740;
+  outline-offset: 2px;
+}
+
+dialog::backdrop {
+  background: rgb(14 39 64 / 0.45);
+}
