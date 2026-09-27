@@ -6,7 +6,8 @@ export const metadata: Metadata = {
   title: "Evidence Mapping",
 };
 
-export default function EvidenceMappingPage({ params }: { params: { id: string } }) {
+export default async function EvidenceMappingPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return (
     <div className="space-y-6">
       <nav aria-label="Breadcrumb" className="text-sm text-muted">
@@ -14,7 +15,7 @@ export default function EvidenceMappingPage({ params }: { params: { id: string }
         <span className="px-2">/</span>
         <Link href="/cases" className="hover:underline">Cases</Link>
         <span className="px-2">/</span>
-        <Link href={`/cases/${params.id}`} className="hover:underline">Case</Link>
+        <Link href={`/cases/${id}`} className="hover:underline">Case</Link>
         <span className="px-2">/</span>
         <span className="text-ink">Evidence Mapping</span>
       </nav>
@@ -24,7 +25,7 @@ export default function EvidenceMappingPage({ params }: { params: { id: string }
         <p className="mt-2 text-sm text-muted">Visual relationship graph of all case entities and their provenance.</p>
       </header>
 
-      <EvidenceGraph caseId={params.id} />
+      <EvidenceGraph caseId={id} />
     </div>
   );
 }

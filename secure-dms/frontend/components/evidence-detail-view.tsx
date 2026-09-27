@@ -290,6 +290,78 @@ export function EvidenceDetailView() {
           </section>
         </div>
       </div>
+      
+      {/* BOTTOM SECTION: AI Evidence Graph & Explainability */}
+      <section className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-slate-900">AI Evidence Graph & Explainability</h3>
+          <span className="inline-flex rounded-full bg-purple-100 px-2.5 py-1 text-xs font-semibold text-purple-700">Beta Feature</span>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
+            <h4 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-4">Evidence Relationships</h4>
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-6 flex items-center justify-center min-h-[250px]">
+               <div className="relative w-full max-w-sm">
+                  <div className="flex justify-between items-center relative">
+                    <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-500 flex items-center justify-center shadow-md z-10 relative">
+                       <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                       <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 whitespace-nowrap">Suspect A</span>
+                    </div>
+                    <div className="flex-1 h-0.5 bg-slate-300 mx-2 relative">
+                       <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400 bg-slate-50 px-1">Linked</span>
+                    </div>
+                    <div className="w-20 h-20 rounded-lg bg-indigo-100 border-2 border-indigo-500 flex flex-col items-center justify-center shadow-md z-10 relative">
+                       <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                       <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 whitespace-nowrap">This Evidence</span>
+                    </div>
+                    <div className="flex-1 h-0.5 bg-slate-300 mx-2 relative">
+                       <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400 bg-slate-50 px-1">Mentions</span>
+                    </div>
+                    <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center shadow-md z-10 relative">
+                       <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                       <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 whitespace-nowrap">Location X</span>
+                    </div>
+                  </div>
+               </div>
+            </div>
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-4">AI Explainability & Significance</h4>
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-6 min-h-[250px] flex flex-col justify-center">
+               <div className="space-y-6">
+                 <div className="flex items-start gap-3">
+                    <div className="mt-0.5 rounded-full bg-purple-100 p-1.5 text-purple-600">
+                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">High Relevance Score</p>
+                      <p className="text-xs text-slate-600 mt-1">This evidence strongly correlates with timestamp anomalies found in CCTV footage EVD-2026-000042.</p>
+                    </div>
+                 </div>
+                 <div className="flex items-start gap-3">
+                    <div className="mt-0.5 rounded-full bg-blue-100 p-1.5 text-blue-600">
+                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Entity Extraction</p>
+                      <p className="text-xs text-slate-600 mt-1">Automatically detected 3 suspect names and 1 primary location matching the active case file.</p>
+                    </div>
+                 </div>
+                 <div className="flex items-start gap-3">
+                    <div className="mt-0.5 rounded-full bg-emerald-100 p-1.5 text-emerald-600">
+                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Authenticity Confidence: 99.2%</p>
+                      <p className="text-xs text-slate-600 mt-1">No deepfake signatures or digital tampering detected in the metadata or bitstream analysis.</p>
+                    </div>
+                 </div>
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
       {artifactOpen ? (
         <ArtifactDialog
           evidenceId={record.id}

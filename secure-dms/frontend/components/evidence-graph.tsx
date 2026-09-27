@@ -59,20 +59,35 @@ export function EvidenceGraph({ caseId }: { caseId: string }) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+const DEMO_GRAPH_DATA: GraphData = {
+  nodes: [
+    { id: "case-1", type: "CASE", name: "Case 2026-001", status: "OPEN", case_number: "2026-001", date: "2026-09-20", detail_url: `/cases/${caseId}`, relationship_count: 2 },
+    { id: "doc-1", type: "DOCUMENT", name: "CCTV Log 42", status: "VERIFIED", case_number: "2026-001", date: "2026-09-21", detail_url: "#", relationship_count: 3 },
+    { id: "ev-1", type: "EVIDENCE", name: "Seized Hard Drive", status: "SECURED", case_number: "2026-001", date: "2026-09-22", detail_url: "#", relationship_count: 2 },
+    { id: "req-1", type: "FORENSIC_REQUEST", name: "FR-001: Data Recovery", status: "COMPLETED", case_number: "2026-001", date: "2026-09-23", detail_url: "#", relationship_count: 2 },
+    { id: "art-1", type: "DERIVED_ARTIFACT", name: "Recovered Chat Logs", status: "VALID", case_number: "2026-001", date: "2026-09-24", detail_url: "#", relationship_count: 3 },
+    { id: "rep-1", type: "FORENSIC_REPORT", name: "Final Report 01", status: "APPROVED", case_number: "2026-001", date: "2026-09-25", detail_url: "#", relationship_count: 1 },
+  ],
+  edges: [
+    { id: "e1", source: "case-1", target: "doc-1", relationship: "CONTAINS", explanation: "Document uploaded to case." },
+    { id: "e2", source: "case-1", target: "ev-1", relationship: "CONTAINS", explanation: "Evidence seized for case." },
+    { id: "e3", source: "ev-1", target: "req-1", relationship: "ANALYZED_BY", explanation: "Forensic request to recover data from Hard Drive." },
+    { id: "e4", source: "req-1", target: "art-1", relationship: "PRODUCES", explanation: "Recovered logs produced by the analysis." },
+    { id: "e5", source: "art-1", target: "rep-1", relationship: "SUPPORTS", explanation: "Artifact supports the findings in the final report." },
+    { id: "e6", source: "doc-1", target: "art-1", relationship: "SHARED_IDENTIFIER", explanation: "AI detected matching identifiers (e.g. Suspect A) in both documents." },
+  ]
+};
+
   useEffect(() => {
-    apiFetch<GraphData>(`/api/cases/${caseId}/relationship-graph`)
-      .then((res) => {
-        setData(res);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err instanceof ApiClientError ? err.message : "Failed to load graph");
-        setLoading(false);
-      });
+    // Demo implementation as requested
+    setTimeout(() => {
+      setData(DEMO_GRAPH_DATA);
+      setLoading(false);
+    }, 500);
   }, [caseId]);
 
   if (loading) return <div className="p-8 text-center text-muted">Loading graph data...</div>;
-  if (error) return <div className="p-8 text-center text-danger">{error}</div>;
+  if (error) return <div className="p-8 text-center text-danger">Error ({caseId}): {error}</div>;
   if (!data) return null;
 
   // Simple Layered Layout
