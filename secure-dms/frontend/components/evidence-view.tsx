@@ -277,11 +277,18 @@ function UploadEvidence({
       <form onSubmit={submit} className="my-8 w-[min(100%,36rem)] space-y-4 rounded-lg border border-line bg-white p-6">
         <h3 className="text-lg font-semibold text-navy">Upload original evidence</h3>
         <p className="text-sm text-muted">Maximum file size {maxMb} MB. Allowed formats: {ALLOWED_FORMATS}. The original file cannot be replaced after upload.</p>
-        <label className="block text-sm">
+        <label className="block text-sm font-semibold text-slate-700">
           File
-          <input required type="file" className="mt-1 block w-full text-sm" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+          <div className="mt-2 flex justify-center rounded-lg border border-dashed border-blue-400/50 bg-blue-50/50 px-6 py-6 transition-colors hover:bg-blue-50">
+            <input 
+              required 
+              type="file" 
+              className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-md file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 focus:outline-none cursor-pointer" 
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)} 
+            />
+          </div>
         </label>
-        {fileFacts ? <p className="text-sm text-navy">{fileFacts}</p> : null}
+        {fileFacts ? <p className="text-sm font-medium text-blue-700 bg-blue-50 p-2 rounded-md border border-blue-200">{fileFacts}</p> : null}
         <label className="block text-sm">
           Title
           <input required minLength={3} maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2" />
