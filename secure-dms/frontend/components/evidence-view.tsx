@@ -6,6 +6,9 @@ import { useParams } from "next/navigation";
 import { DocumentClassificationBadge } from "@/components/document-badges";
 import { can, usePermissions } from "@/components/session-context";
 import { ApiClientError, apiFetch, apiFetchBlob, uploadWithProgress } from "@/lib/api";
+import { useNetworkStatus } from "@/hooks/use-network-status";
+import { OfflineSyncQueue } from "@/lib/offline-store";
+import { calculateFileHash } from "@/lib/crypto";
 import {
   documentClassificationLabel,
   evidenceStatusLabel,
@@ -193,7 +196,9 @@ export function EvidenceView() {
           onUploaded={async (title, scanNotice) => {
             setUploadOpen(false);
             setNotice(scanNotice ? `${title} was stored. ${scanNotice}` : `${title} was stored as original evidence.`);
-            await load();
+            if (navigator.onLine) {
+              try { await load(); } catch (e) {}
+            }
           }}
           onError={setError}
         />
@@ -249,12 +254,42 @@ function UploadEvidence({
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const fileFacts = useMemo(() => (file ? `${file.name} · ${formatFileSize(file.size)} · ${file.type || "unknown type"}` : null), [file]);
+  const isOnline = useNetworkStatus();
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!file || busy) return;
     setBusy(true);
     setProgress(0);
+    
+    if (!isOnline) {
+      try {
+        const hash = await calculateFileHash(file);
+        await OfflineSyncQueue.enqueue({
+          caseId,
+          itemType: "EVIDENCE",
+          file,
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          fileSize: file.size,
+          localSha256: hash,
+          createdAt: new Date().toISOString(),
+          metadata: {
+            title,
+            evidence_type: evidenceType,
+            classification,
+            description: description.trim(),
+          },
+        });
+        await onUploaded(title, "Evidence saved locally. It will synchronize automatically when the connection is restored.");
+      } catch (caught) {
+        onError("Failed to save offline evidence: " + (caught instanceof Error ? caught.message : String(caught)));
+        setBusy(false);
+        setProgress(null);
+      }
+      return;
+    }
+    
     const form = new FormData();
     form.set("file", file);
     form.set("title", title);
@@ -310,7 +345,13 @@ function UploadEvidence({
           <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2" rows={3} />
         </label>
         {progress !== null ? <p className="text-sm text-muted">Upload progress {progress}%</p> : null}
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 items-center mt-2">
+          <div className="mr-auto">
+            <button type="button" className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors flex items-center gap-2" title="Future integrity with eSakshya platform">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              Record Video for eSakshya
+            </button>
+          </div>
           <button type="button" className="rounded-md border border-line px-3 py-2 text-sm" onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className="rounded-md bg-navy px-3 py-2 text-sm text-white" disabled={busy}>Upload evidence</button>
         </div>

@@ -11,11 +11,11 @@ const TONES: Record<string, string> = {
   ARCHIVED: "border-line bg-paper text-muted",
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, label }: { status: string; label?: string }) {
   const tone = TONES[status] ?? "border-line bg-white text-navy";
   return (
     <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${tone}`}>
-      {statusLabel(status)}
+      {label ?? statusLabel(status)}
     </span>
   );
 }

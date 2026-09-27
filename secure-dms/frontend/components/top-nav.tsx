@@ -8,6 +8,8 @@ import { clearSession, getRefreshToken } from "@/lib/session";
 import type { MeResponse } from "@/lib/types";
 import { can, usePermissions } from "@/components/session-context";
 
+import { SyncIndicator } from "@/components/sync-indicator";
+
 export function TopNav({
   title,
   user,
@@ -91,6 +93,7 @@ export function TopNav({
         </form>
       </div>
       <div className="flex items-center gap-5">
+        <SyncIndicator />
         <div className="flex items-center gap-3">
           <div className="hidden text-right sm:block">
             <p className="text-sm font-semibold text-slate-900">{user.full_name}</p>

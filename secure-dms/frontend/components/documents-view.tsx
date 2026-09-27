@@ -6,6 +6,9 @@ import { useParams } from "next/navigation";
 import { DocumentClassificationBadge, DocumentStatusBadge, DocumentTypeBadge } from "@/components/document-badges";
 import { can, usePermissions, useSession } from "@/components/session-context";
 import { ApiClientError, apiFetch, apiFetchBlob, uploadWithProgress } from "@/lib/api";
+import { useNetworkStatus } from "@/hooks/use-network-status";
+import { OfflineSyncQueue } from "@/lib/offline-store";
+import { calculateFileHash } from "@/lib/crypto";
 import {
   documentClassificationLabel,
   documentStatusLabel,
@@ -236,7 +239,9 @@ export function DocumentsView() {
           onUploaded={async (title, notice) => {
             setUploadOpen(false);
             setNotice(notice ? `${title} was uploaded. ${notice}` : `${title} was uploaded.`);
-            await refresh();
+            if (navigator.onLine) {
+              try { await refresh(); } catch (e) {}
+            }
           }}
           onError={setError}
         />
@@ -381,6 +386,8 @@ function UploadDialog({
     return `${file.name} · ${formatFileSize(file.size)} · ${file.type || "unknown type"}`;
   }, [file]);
 
+  const isOnline = useNetworkStatus();
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!file || busy) {
@@ -388,6 +395,35 @@ function UploadDialog({
     }
     setBusy(true);
     setProgress(0);
+    
+    if (!isOnline) {
+      try {
+        const hash = await calculateFileHash(file);
+        await OfflineSyncQueue.enqueue({
+          caseId,
+          itemType: "DOCUMENT",
+          file,
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          fileSize: file.size,
+          localSha256: hash,
+          createdAt: new Date().toISOString(),
+          metadata: {
+            title,
+            document_type: documentType,
+            classification,
+            description: description.trim(),
+          },
+        });
+        await onUploaded(title, "Document saved locally. It will synchronize automatically when the connection is restored.");
+      } catch (caught) {
+        onError("Failed to save offline document: " + (caught instanceof Error ? caught.message : String(caught)));
+        setBusy(false);
+        setProgress(null);
+      }
+      return;
+    }
+    
     const form = new FormData();
     form.set("file", file);
     form.set("title", title);
