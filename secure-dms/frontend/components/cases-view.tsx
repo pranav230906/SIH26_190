@@ -139,30 +139,30 @@ export function CasesView() {
   const to = data ? Math.min(data.page * data.page_size, data.total) : 0;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-semibold">Case register</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
+          <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Case Register</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
             Search covers case number and title. The service returns only cases this account can open.
           </p>
         </div>
         {can(permissions, "ACCESS_REQUEST.CREATE") ? (
           <button
             type="button"
-            className="rounded-md bg-navy px-3 py-1.5 text-sm text-white"
+            className="rounded-md bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm"
             onClick={() => {
               setReqModalError(null);
               setRequestModalOpen(true);
             }}
           >
-            Request case access
+            Request Case Access
           </button>
         ) : null}
       </div>
 
       <form
-        className="grid gap-3 rounded-lg border border-line bg-white p-4 md:grid-cols-4"
+        className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-4"
         onSubmit={(event) => {
           event.preventDefault();
           setPage(1);
@@ -170,25 +170,25 @@ export function CasesView() {
         }}
       >
         <label className="text-sm md:col-span-2">
-          <span className="mb-1 block text-muted">Search</span>
+          <span className="mb-1.5 block font-medium text-slate-700">Search</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full rounded-md border border-line px-3 py-2"
-            placeholder="Case number or title"
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Case number or title..."
           />
         </label>
         <label className="text-sm">
-          <span className="mb-1 block text-muted">Status</span>
+          <span className="mb-1.5 block font-medium text-slate-700">Status</span>
           <select
             value={status}
             onChange={(event) => {
               setStatus(event.target.value);
               setPage(1);
             }}
-            className="w-full rounded-md border border-line bg-white px-3 py-2"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
-            <option value="">All statuses</option>
+            <option value="">All Statuses</option>
             {STATUSES.map((item) => (
               <option key={item} value={item}>
                 {statusLabel(item)}
@@ -197,14 +197,14 @@ export function CasesView() {
           </select>
         </label>
         <label className="text-sm">
-          <span className="mb-1 block text-muted">Department</span>
+          <span className="mb-1.5 block font-medium text-slate-700">Department</span>
           <select
             value={departmentId}
             onChange={(event) => {
               setDepartmentId(event.target.value);
               setPage(1);
             }}
-            className="w-full rounded-md border border-line bg-white px-3 py-2"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="">All visible departments</option>
             {departments.map((item) => (
@@ -214,9 +214,9 @@ export function CasesView() {
             ))}
           </select>
         </label>
-        <div className="md:col-span-4">
-          <button type="submit" className="rounded-md border border-line px-3 py-2 text-sm">
-            Search
+        <div className="md:col-span-4 flex justify-end mt-2">
+          <button type="submit" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+            Apply Filters
           </button>
         </div>
       </form>

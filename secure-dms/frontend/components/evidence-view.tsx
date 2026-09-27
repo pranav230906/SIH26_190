@@ -73,39 +73,42 @@ export function EvidenceView() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-4 mb-2">
         <div>
-          <p className="text-sm text-muted">Evidence vault</p>
-          <h2 className="mt-1 text-2xl font-semibold text-navy">{caseRecord?.case_number ?? "Case evidence"}</h2>
-          <p className="mt-1 text-sm text-muted">{caseRecord?.title ?? "Loading case"}</p>
+          <nav aria-label="Breadcrumb" className="text-sm font-medium text-slate-500 mb-1 flex items-center gap-2">
+            <Link href={`/cases/${caseId}`} className="hover:text-blue-600 transition-colors">Case {caseRecord?.case_number ?? "..."}</Link>
+            <span>/</span>
+            <span className="text-slate-900">Evidence Vault</span>
+          </nav>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Case Evidence</h2>
         </div>
         {canUpload ? (
-          <button type="button" className="rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => setUploadOpen(true)}>
-            Upload evidence
+          <button type="button" className="rounded-md bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm flex items-center gap-2" onClick={() => setUploadOpen(true)}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Lodge Evidence
           </button>
         ) : null}
       </header>
       {error ? <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">{error}</p> : null}
       {notice ? <p className="rounded-md border border-line bg-white px-4 py-3 text-sm">{notice}</p> : null}
       <form
-        className="grid gap-3 rounded-lg border border-line bg-white p-4 md:grid-cols-5"
+        className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-5"
         onSubmit={(event) => {
           event.preventDefault();
           setAppliedQuery(query);
         }}
       >
         <label className="text-sm md:col-span-2">
-          Search
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2" placeholder="Number, title, or filename" />
+          <span className="font-medium text-slate-700">Search</span>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Number, title, or filename" />
         </label>
-        <Filter label="Evidence type" value={evidenceType} onChange={setEvidenceType} options={EVIDENCE_TYPES} labelFor={evidenceTypeLabel} />
-        <Filter label="Classification" value={classification} onChange={setClassification} options={CLASSIFICATIONS} labelFor={documentClassificationLabel} />
+        <Filter label="Type" value={evidenceType} onChange={setEvidenceType} options={EVIDENCE_TYPES} labelFor={evidenceTypeLabel} />
+        <Filter label="Security" value={classification} onChange={setClassification} options={CLASSIFICATIONS} labelFor={documentClassificationLabel} />
         <Filter label="Status" value={status} onChange={setStatus} options={STATUSES} labelFor={evidenceStatusLabel} />
-        <div className="flex items-end gap-2 md:col-span-5">
-          <button type="submit" className="rounded-md bg-navy px-3 py-2 text-sm text-white">Search</button>
+        <div className="flex items-end justify-end gap-3 md:col-span-5 border-t border-slate-100 pt-3 mt-1">
           <button
             type="button"
-            className="rounded-md border border-line px-3 py-2 text-sm"
+            className="rounded-md border border-transparent px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
             onClick={() => {
               setQuery("");
               setAppliedQuery("");
@@ -114,48 +117,66 @@ export function EvidenceView() {
               setStatus("");
             }}
           >
-            Clear filters
+            Clear Filters
+          </button>
+          <button type="submit" className="rounded-md bg-slate-900 hover:bg-slate-800 transition-colors px-5 py-2 text-sm font-medium text-white shadow-sm">
+            Apply Search
           </button>
         </div>
       </form>
       {evidence === null ? (
-        error ? null : <p className="text-sm text-muted">Loading evidence</p>
+        error ? null : <p className="text-sm text-slate-500 mt-4">Loading evidence vault...</p>
       ) : evidence.items.length === 0 ? (
-        <p className="rounded-lg border border-line bg-white px-4 py-6 text-sm text-muted">No evidence matches these filters.</p>
+        <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 shadow-sm mt-4">No evidence matches your search criteria.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-line text-muted">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm mt-4">
+          <table className="min-w-full text-left text-sm whitespace-nowrap">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wider text-slate-500 uppercase font-semibold">
               <tr>
-                <th className="px-4 py-3 font-medium">Evidence number</th>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Classification</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Hash</th>
-                <th className="px-4 py-3 font-medium">Created</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
+                <th className="px-6 py-4">Evidence Item</th>
+                <th className="px-6 py-4">Type & Security</th>
+                <th className="px-6 py-4">Status & Integrity</th>
+                <th className="px-6 py-4">Chain of Custody</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {evidence.items.map((item) => (
-                <tr key={item.id} className="border-b border-line last:border-0">
-                  <td className="px-4 py-3 font-medium text-navy">{item.evidence_number}</td>
-                  <td className="px-4 py-3">{item.title}</td>
-                  <td className="px-4 py-3">{evidenceTypeLabel(item.evidence_type)}</td>
-                  <td className="px-4 py-3"><DocumentClassificationBadge value={item.classification} /></td>
-                  <td className="px-4 py-3">{evidenceStatusLabel(item.status)}</td>
-                  <td className="px-4 py-3 font-mono text-xs" title={item.sha256_hash}>{item.sha256_hash.slice(0, 12)}…</td>
-                  <td className="px-4 py-3">{formatDay(item.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Link href={`/evidence/${item.id}`} className="rounded-md border border-line px-2 py-1 text-xs">View</Link>
+                <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-6 py-4 max-w-[240px] truncate">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded bg-indigo-50 flex items-center justify-center text-indigo-500">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                      </div>
+                      <div className="truncate">
+                        <p className="font-semibold text-slate-900 truncate">{item.title}</p>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">{item.evidence_number}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 space-y-2">
+                     <div><span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{evidenceTypeLabel(item.evidence_type)}</span></div>
+                     <div><DocumentClassificationBadge value={item.classification} /></div>
+                  </td>
+                  <td className="px-6 py-4">
+                     <div><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${item.status === 'SEALED' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>{evidenceStatusLabel(item.status)}</span></div>
+                     <p className="mt-1 font-mono text-[10px] text-slate-400" title={item.sha256_hash}>Hash: {item.sha256_hash.slice(0, 8)}…</p>
+                  </td>
+                  <td className="px-6 py-4">
+                     <p className="text-sm font-medium text-slate-700">{item.created_by_name || "Case Vault"}</p>
+                     <p className="text-xs text-slate-500">Lodged: {formatDay(item.created_at)}</p>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link href={`/evidence/${item.id}`} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm">
+                        Inspect
+                      </Link>
                       {canDownload ? (
-                        <button type="button" className="rounded-md border border-line px-2 py-1 text-xs" onClick={() => downloadFile(`/api/evidence/${item.id}/download`, setError)}>
+                        <button type="button" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm" onClick={() => downloadFile(`/api/evidence/${item.id}/download`, setError)}>
                           Download
                         </button>
                       ) : null}
-                      <Link href={`/evidence/${item.id}#integrity`} className="rounded-md border border-line px-2 py-1 text-xs">Verify integrity</Link>
+                      <Link href={`/evidence/${item.id}#integrity`} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm">Verify</Link>
                     </div>
                   </td>
                 </tr>
@@ -195,9 +216,9 @@ function Filter({
   labelFor: (value: string) => string;
 }) {
   return (
-    <label className="text-sm">
-      {label}
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2">
+    <label className="text-sm font-medium text-slate-700">
+      <span className="block mb-1.5">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
         <option value="">All</option>
         {options.map((option) => (
           <option key={option} value={option}>{labelFor(option)}</option>

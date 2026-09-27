@@ -23,6 +23,40 @@ const ASSIGNMENT_TYPES = [
   "JUDICIAL_ACCESS",
 ];
 
+const LIFECYCLE_STAGES = [
+  "DRAFT",
+  "ACTIVE",
+  "UNDER_INVESTIGATION",
+  "UNDER_REVIEW",
+  "READY_FOR_PROSECUTION",
+  "IN_COURT",
+  "CLOSED"
+];
+
+function LifecycleIndicator({ currentStatus }: { currentStatus: string }) {
+  const currentIndex = LIFECYCLE_STAGES.indexOf(currentStatus);
+  const activeIndex = currentIndex === -1 ? LIFECYCLE_STAGES.length : currentIndex;
+
+  return (
+    <div className="flex items-center overflow-x-auto pb-4 pt-2 hide-scrollbar">
+      {LIFECYCLE_STAGES.map((status, index) => {
+        const isPast = index < activeIndex;
+        const isCurrent = index === activeIndex;
+        return (
+          <div key={status} className="flex items-center flex-shrink-0">
+            <div className={`flex items-center justify-center h-8 px-4 rounded-full text-xs font-semibold border ${isCurrent ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : isPast ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-400'}`}>
+              {statusLabel(status)}
+            </div>
+            {index < LIFECYCLE_STAGES.length - 1 && (
+              <div className={`w-6 sm:w-10 h-px mx-1 ${index < activeIndex ? 'bg-blue-300' : 'bg-slate-200'}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CaseDetailView() {
   const params = useParams<{ id: string }>();
   const session = useSession();
@@ -149,28 +183,45 @@ export function CaseDetailView() {
 
       {record ? (
         <>
-          <header className="rounded-lg border border-line bg-white p-6">
+          <header className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="font-mono text-sm text-muted">{record.case_number}</p>
-                <h2 className="mt-1 text-2xl font-semibold">{record.title}</h2>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <StatusBadge status={record.status} />
-                  <span className="text-sm text-muted">{record.department?.name ?? "Department not recorded"}</span>
+                <p className="font-mono text-sm font-semibold text-blue-600 tracking-wider uppercase mb-1">{record.case_number}</p>
+                <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{record.title}</h2>
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">Status:</span>
+                    <StatusBadge status={record.status} />
+                  </div>
+                  <div className="h-4 w-px bg-slate-300 hidden sm:block"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">Dept:</span>
+                    <span className="font-medium text-slate-900">{record.department?.name ?? "Department not recorded"}</span>
+                  </div>
+                  <div className="h-4 w-px bg-slate-300 hidden sm:block"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">Updated:</span>
+                    <span className="font-medium text-slate-900">{formatDay(record.updated_at)}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {can(permissions, "CASE.UPDATE") ? (
-                  <button type="button" className="rounded-md border border-line px-3 py-2 text-sm" onClick={() => setEditing((current) => !current)}>
-                    Edit case
+                  <button type="button" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm" onClick={() => setEditing((current) => !current)}>
+                    Edit Details
                   </button>
                 ) : null}
                 {can(permissions, "CASE.ASSIGN") ? (
-                  <a href="#assignments" className="rounded-md bg-navy px-3 py-2 text-sm text-white">
-                    Manage assignments
+                  <a href="#assignments" className="rounded-md bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm">
+                    Manage Access
                   </a>
                 ) : null}
               </div>
+            </div>
+            
+            <div className="mt-8 border-t border-slate-100 pt-6">
+               <h3 className="text-xs font-semibold tracking-wider text-slate-500 uppercase mb-3">Case Lifecycle</h3>
+               <LifecycleIndicator currentStatus={record.status} />
             </div>
           </header>
 
@@ -230,31 +281,32 @@ export function CaseDetailView() {
             </form>
           ) : null}
 
-          <section className="rounded-lg border border-line bg-white p-6">
-            <h3 className="text-base font-semibold">Overview</h3>
-            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
+            <h3 className="text-base font-semibold text-slate-900 mb-4">Case Summary</h3>
+            <p className="max-w-4xl text-sm leading-6 text-slate-700 mb-6">{record.description}</p>
+            
+            <h3 className="text-xs font-semibold tracking-wider text-slate-500 uppercase mb-3 border-t border-slate-100 pt-5">Metadata</h3>
+            <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <dt className="text-xs tracking-[0.14em] text-muted uppercase">Case type</dt>
-                <dd className="mt-1 text-sm">{caseTypeLabel(record.case_type)}</dd>
+                <dt className="text-xs tracking-[0.14em] text-slate-500 uppercase">Case Type</dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">{caseTypeLabel(record.case_type)}</dd>
               </div>
               <div>
-                <dt className="text-xs tracking-[0.14em] text-muted uppercase">Current status</dt>
-                <dd className="mt-1 text-sm">{statusLabel(record.status)}</dd>
+                <dt className="text-xs tracking-[0.14em] text-slate-500 uppercase">Current Status</dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">{statusLabel(record.status)}</dd>
               </div>
               <div>
-                <dt className="text-xs tracking-[0.14em] text-muted uppercase">Created</dt>
-                <dd className="mt-1 text-sm">
+                <dt className="text-xs tracking-[0.14em] text-slate-500 uppercase">Created</dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">
                   {formatTimestamp(record.created_at)}
-                  <span className="block text-muted">by {record.created_by_name}</span>
+                  <span className="block text-slate-500 text-xs mt-0.5">by {record.created_by_name}</span>
                 </dd>
               </div>
               <div>
-                <dt className="text-xs tracking-[0.14em] text-muted uppercase">Last updated</dt>
-                <dd className="mt-1 text-sm">{formatTimestamp(record.updated_at)}</dd>
+                <dt className="text-xs tracking-[0.14em] text-slate-500 uppercase">Last Updated</dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">{formatTimestamp(record.updated_at)}</dd>
               </div>
             </dl>
-            <h4 className="mt-6 text-sm font-semibold">Description</h4>
-            <p className="mt-2 max-w-3xl text-sm leading-6">{record.description}</p>
           </section>
 
           <section id="assignments" className="rounded-lg border border-line bg-white">

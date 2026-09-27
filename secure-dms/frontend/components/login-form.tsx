@@ -52,41 +52,49 @@ export function LoginForm() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
-      <aside className="hidden flex-col justify-between bg-navy px-12 py-12 text-white lg:flex">
-        <div className="flex items-center gap-3">
+      <aside className="hidden flex-col justify-between bg-slate-900 px-12 py-12 text-white lg:flex border-r-4 border-blue-600 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/bg-pattern.svg')] opacity-5"></div>
+        <div className="relative z-10 flex items-center gap-3">
           <Mark tone="light" />
           <div>
-            <p className="text-xs tracking-[0.18em] uppercase text-white/70">Secure DMS</p>
-            <p className="text-sm text-white/80">Case records prototype</p>
+            <p className="text-xs font-bold tracking-[0.2em] uppercase text-slate-300">Secure DMS</p>
+            <p className="text-sm font-medium text-slate-400">Classified Workspace</p>
           </div>
         </div>
-        <div className="max-w-md">
-          <h1 className="text-4xl leading-tight font-semibold">Document workspace for investigation and judicial review.</h1>
-          <p className="mt-5 text-base leading-7 text-white/75">
-            Cases and assignments are the center of the record. This environment contains fictional demonstration data only.
+        <div className="relative z-10 max-w-md">
+          <h1 className="text-4xl leading-tight font-bold text-white tracking-wide">
+             Authorized Document Management System
+          </h1>
+          <div className="w-16 h-1.5 bg-blue-500 mt-6 mb-4 rounded-full"></div>
+          <p className="mt-4 text-base leading-relaxed text-slate-300">
+            Secure investigation and judicial review platform. Access is restricted to authorized personnel. This environment contains fictional demonstration data only.
           </p>
         </div>
-        <p className="text-xs text-white/55">Development prototype. Not for operational use.</p>
+        <div className="relative z-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Development Prototype</p>
+          <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-1">Not for operational use</p>
+        </div>
       </aside>
 
-      <main className="flex items-center justify-center bg-paper px-4 py-10 sm:px-8">
+      <main className="flex items-center justify-center bg-slate-50 px-4 py-10 sm:px-8">
         <div className="w-full max-w-md">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
+          <div className="mb-10 flex items-center gap-3 lg:hidden justify-center">
             <Mark />
             <div>
-              <p className="text-xs tracking-[0.16em] text-muted uppercase">Secure DMS</p>
-              <p className="text-sm font-medium">Case records prototype</p>
+              <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">Secure DMS</p>
+              <p className="text-sm font-medium text-slate-900">Classified Workspace</p>
             </div>
           </div>
 
-          <div className="rounded-lg border border-line bg-white px-6 py-7 shadow-sm sm:px-8">
-            <h2 className="text-2xl font-semibold text-ink">Sign in</h2>
-            <p className="mt-2 text-sm leading-6 text-muted">Use a development account to open the workspace.</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-600"></div>
+            <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-wide">Authenticate</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500 font-medium">Use a provisioned development account to open the secure workspace.</p>
 
-            <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
+            <form className="mt-8 space-y-5" onSubmit={onSubmit} noValidate>
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-ink">
-                  Username
+                <label htmlFor="username" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Service ID (Username)
                 </label>
                 <input
                   id="username"
@@ -95,14 +103,15 @@ export function LoginForm() {
                   required
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
-                  className="mt-1.5 w-full rounded-md border border-line bg-white px-3 py-2 text-sm"
+                  className="mt-2 w-full rounded-lg border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-mono focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-900"
+                  placeholder="e.g. officer2"
                 />
               </div>
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-ink">
-                  Password
+                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Passphrase
                 </label>
-                <div className="mt-1.5 flex gap-2">
+                <div className="mt-2 flex gap-2">
                   <input
                     id="password"
                     name="password"
@@ -111,12 +120,12 @@ export function LoginForm() {
                     required
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm"
+                    className="w-full rounded-lg border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-900"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="rounded-md border border-line px-3 text-sm text-ink"
+                    className="rounded-lg border-2 border-slate-200 px-4 text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                     aria-pressed={showPassword}
                   >
                     {showPassword ? "Hide" : "Show"}
@@ -125,33 +134,49 @@ export function LoginForm() {
               </div>
 
               {error ? (
-                <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
+                <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-center gap-3 text-red-800 text-sm font-medium shadow-sm">
+                  <svg className="w-5 h-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg> 
                   {error}
-                </p>
+                </div>
               ) : null}
 
               <button
                 type="submit"
                 disabled={submitting}
                 aria-busy={submitting}
-                className="w-full rounded-md bg-navy px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+                className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold tracking-wide uppercase text-white disabled:opacity-60 shadow-md hover:bg-blue-700 hover:shadow-lg transition-all flex items-center justify-center gap-2 mt-2"
               >
-                {submitting ? "Signing in…" : "Sign in"}
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Authenticating...
+                  </>
+                ) : (
+                  <>
+                    Sign In Securely
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                  </>
+                )}
               </button>
             </form>
           </div>
 
-          <details className="mt-4 rounded-lg border border-line bg-white px-4 py-3 text-sm">
-            <summary className="cursor-pointer font-medium text-ink">Development credentials</summary>
-            <p className="mt-3 leading-6 text-muted">
-              These accounts are fictional and for local demonstration only. Every account uses the password{" "}
-              <span className="font-mono text-ink">DevOnly#2026</span>.
-            </p>
-            <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-xs text-ink">
-              {DEMO_USERS.map((name) => (
-                <li key={name}>{name}</li>
-              ))}
-            </ul>
+          <details className="mt-6 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
+            <summary className="cursor-pointer font-bold text-slate-700 uppercase tracking-wider text-xs">Development Credentials</summary>
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="leading-relaxed text-slate-500 font-medium text-xs">
+                These accounts are fictional and for local demonstration only. Every account uses the passphrase{" "}
+                <span className="font-mono text-blue-600 bg-blue-50 px-1 py-0.5 rounded font-bold">DevOnly#2026</span>.
+              </p>
+              <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 font-mono text-xs text-slate-700 font-bold">
+                {DEMO_USERS.map((name) => (
+                  <li key={name} className="flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"></span>
+                     {name}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </details>
         </div>
       </main>

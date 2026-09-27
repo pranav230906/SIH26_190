@@ -85,254 +85,294 @@ export function RequestsView() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900 rounded-xl p-6 shadow-md text-white">
         <div>
-          <h2 className="text-xl font-semibold">Access requests</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
-            Approval is decided by the service. A person cannot approve their own request.
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+             <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+             Access Request Queue
+          </h2>
+          <p className="mt-1 text-sm text-slate-300">
+            Manage operational clearances and temporary access grants for secure records.
           </p>
         </div>
         {can(permissions, "ACCESS_REQUEST.CREATE") ? (
           <button
             type="button"
-            className="rounded-md bg-navy px-3 py-1.5 text-sm text-white"
+            className="rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors px-5 py-2.5 text-sm font-bold shadow-sm flex items-center gap-2"
             onClick={() => {
               setModalError(null);
               setRequestModalOpen(true);
             }}
           >
-            Request case access
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Request Clearance
           </button>
         ) : null}
       </div>
-      <div className="flex gap-2" role="tablist">
+
+      <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit border border-slate-200">
         {can(permissions, "ACCESS_REQUEST.READ") ? (
           <button
             type="button"
-            className={`rounded-md border px-3 py-1.5 text-sm ${scope === "mine" ? "border-navy bg-navy text-white" : "border-line bg-white"}`}
+            className={`rounded-md px-6 py-2 text-sm font-bold transition-all ${scope === "mine" ? "bg-white text-blue-700 shadow-sm border border-slate-200/50" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"}`}
             onClick={() => setScope("mine")}
           >
-            My requests
+            My Requests
           </button>
         ) : null}
         {can(permissions, "ACCESS_REQUEST.APPROVE") ? (
           <>
             <button
               type="button"
-              className={`rounded-md border px-3 py-1.5 text-sm ${scope === "pending" ? "border-navy bg-navy text-white" : "border-line bg-white"}`}
+              className={`rounded-md px-6 py-2 text-sm font-bold transition-all ${scope === "pending" ? "bg-white text-blue-700 shadow-sm border border-slate-200/50" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"}`}
               onClick={() => setScope("pending")}
             >
-              Pending approvals
+              Pending Approvals
             </button>
             <button
               type="button"
-              className={`rounded-md border px-3 py-1.5 text-sm ${scope === "active" ? "border-navy bg-navy text-white" : "border-line bg-white"}`}
+              className={`rounded-md px-6 py-2 text-sm font-bold transition-all ${scope === "active" ? "bg-white text-blue-700 shadow-sm border border-slate-200/50" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"}`}
               onClick={() => setScope("active")}
             >
-              Active grants
+              Active Grants
             </button>
           </>
         ) : null}
       </div>
-      {notice ? <p className="text-sm text-muted">{notice}</p> : null}
+      
+      {notice ? <div className="rounded-lg bg-green-50 border border-green-200 p-4 flex items-center gap-3 text-green-800 text-sm font-medium shadow-sm"><svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg> {notice}</div> : null}
       {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
+        <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-center gap-3 text-red-800 text-sm font-medium shadow-sm">
+          <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg> {error}
+        </div>
       ) : null}
-      <section className="rounded-lg border border-line bg-white">
-        {items === null && !error ? <p className="px-5 py-4 text-sm text-muted">Loading requests…</p> : null}
-        {items && items.length === 0 ? <p className="px-5 py-4 text-sm text-muted">No {scope} requests</p> : null}
+      <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {items === null && !error ? <div className="px-6 py-12 flex flex-col items-center justify-center text-slate-400"><svg className="animate-spin h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p className="font-medium text-sm">Loading requests...</p></div> : null}
+        {items && items.length === 0 ? (
+           <div className="px-6 py-16 text-center text-slate-500">
+             <svg className="w-12 h-12 mx-auto mb-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+             <p className="text-lg font-medium text-slate-700">No {scope} requests found.</p>
+           </div>
+        ) : null}
         {items && items.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[44rem] text-left text-sm">
-              <thead className="border-b border-line text-xs tracking-wide text-muted uppercase">
-                <tr>
-                  <th className="px-5 py-3 font-medium">Case</th>
-                  <th className="px-5 py-3 font-medium">Requester</th>
-                  <th className="px-5 py-3 font-medium">Request</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3 font-medium">{scope === "active" ? "Expires" : "Created"}</th>
-                  {scope === "pending" || scope === "active" ? (
-                    <th className="px-5 py-3 font-medium">Action</th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} className="border-b border-line last:border-0">
-                    <td className="px-5 py-3 font-medium">{item.case_number}</td>
-                    <td className="px-5 py-3">{item.requester_username}</td>
-                    <td className="px-5 py-3">
-                      {item.resource_type} {item.requested_action}
-                      {item.access_kind === "EMERGENCY" ? (
-                        <span className="ml-2 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
-                          Emergency (24h)
-                        </span>
-                      ) : null}
-                      <span className="mt-1 block text-xs text-muted">{item.justification}</span>
-                    </td>
-                    <td className="px-5 py-3">{item.status}</td>
-                    <td className="px-5 py-3 text-muted">
-                      {scope === "active"
-                        ? item.expires_at
-                          ? formatTimestamp(item.expires_at)
-                          : "No expiry"
-                        : formatTimestamp(item.created_at)}
-                    </td>
-                    {scope === "pending" ? (
-                      <td className="px-5 py-3">
-                        {item.requester_id === session.id ? (
-                          <span className="text-xs text-muted">Own request</span>
-                        ) : (
-                          <div className="flex gap-3">
-                            <button
-                              type="button"
-                              className="text-sm font-medium text-navy underline-offset-4 hover:underline"
-                              onClick={() =>
-                                setConfirm({
-                                  title: "Approve access request?",
-                                  message: `Approve ${item.requested_action} on ${item.resource_type} for ${item.requester_username}.`,
-                                  confirmLabel: "Approve",
-                                  run: async () => {
-                                    await apiFetch(`/api/access-requests/${item.id}/approve`, {
-                                      method: "POST",
-                                      body: JSON.stringify({ note: "Approved from the request register." }),
-                                    });
-                                    setItems((current) => (current ?? []).filter((row) => row.id !== item.id));
-                                    setNotice("Request approved.");
-                                  },
-                                })
-                              }
-                            >
-                              Approve
-                            </button>
-                            <button
-                              type="button"
-                              className="text-sm text-danger underline-offset-4 hover:underline"
-                              onClick={() =>
-                                setConfirm({
-                                  title: "Reject access request?",
-                                  message: `Reject the request from ${item.requester_username}.`,
-                                  confirmLabel: "Reject",
-                                  run: async () => {
-                                    await apiFetch(`/api/access-requests/${item.id}/reject`, {
-                                      method: "POST",
-                                      body: JSON.stringify({ note: "Rejected from the request register." }),
-                                    });
-                                    setItems((current) => (current ?? []).filter((row) => row.id !== item.id));
-                                    setNotice("Request rejected.");
-                                  },
-                                })
-                              }
-                            >
-                              Reject
-                            </button>
+          <ul className="divide-y divide-slate-100">
+            {items.map((item) => (
+              <li key={item.id} className={`p-6 hover:bg-slate-50 transition-colors ${item.status === 'PENDING' ? 'border-l-4 border-l-amber-400' : item.status === 'APPROVED' ? 'border-l-4 border-l-green-500' : item.status === 'REJECTED' ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-slate-300'}`}>
+                 <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                    <div className="flex-1 space-y-3">
+                       <div className="flex items-center gap-3">
+                          <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider ${
+                            item.status === 'PENDING' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                            item.status === 'APPROVED' ? 'bg-green-100 text-green-800 border border-green-200' :
+                            item.status === 'REJECTED' ? 'bg-red-100 text-red-800 border border-red-200' :
+                            'bg-slate-100 text-slate-800 border border-slate-200'
+                          }`}>
+                            {item.status}
+                          </span>
+                          <span className="font-mono text-sm font-bold text-slate-600 px-2 py-0.5 bg-slate-100 rounded border border-slate-200">{item.case_number}</span>
+                          <span className="text-sm font-bold text-slate-700 flex items-center gap-1">
+                             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                             {item.requester_username}
+                          </span>
+                       </div>
+                       
+                       <div>
+                          <p className="text-base font-bold text-slate-900 flex items-center gap-2">
+                             Requested: {item.resource_type} {item.requested_action}
+                             {item.access_kind === "EMERGENCY" ? (
+                               <span className="inline-flex items-center gap-1 rounded bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-800 border border-red-200">
+                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                 Emergency (24h)
+                               </span>
+                             ) : null}
+                          </p>
+                          <div className="mt-2 bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-600 shadow-sm relative before:absolute before:left-3 before:-top-2 before:w-4 before:h-4 before:bg-white before:border-t before:border-l before:border-slate-200 before:transform before:rotate-45">
+                             <p className="relative z-10 italic">"{item.justification}"</p>
                           </div>
-                        )}
-                      </td>
-                    ) : null}
-                    {scope === "active" ? (
-                      <td className="px-5 py-3">
-                        <button
-                          type="button"
-                          className="text-sm text-danger underline-offset-4 hover:underline"
-                          onClick={() =>
-                            setConfirm({
-                              title: "Revoke access grant?",
-                              message: `Immediately revoke access for ${item.requester_username} on ${item.case_number}.`,
-                              confirmLabel: "Revoke Access",
-                              run: async () => {
-                                await apiFetch(`/api/access-requests/${item.id}/revoke`, {
-                                  method: "POST",
-                                  body: JSON.stringify({ note: "Access grant revoked early by supervisor." }),
-                                });
-                                setItems((current) => (current ?? []).filter((row) => row.id !== item.id));
-                                setNotice("Access grant revoked.");
-                              },
-                            })
-                          }
-                        >
-                          Revoke
-                        </button>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                       </div>
+                       
+                       <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+                         <span className="flex items-center gap-1">
+                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                           Created: {formatTimestamp(item.created_at)}
+                         </span>
+                         {scope === "active" && item.expires_at ? (
+                           <span className="flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                             Expires: {formatTimestamp(item.expires_at)}
+                           </span>
+                         ) : null}
+                       </div>
+                    </div>
+                    
+                    <div className="flex lg:flex-col gap-3 shrink-0 items-end">
+                       {scope === "pending" && item.requester_id === session.id ? (
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded border border-slate-200">Own Request</span>
+                       ) : null}
+                       
+                       {scope === "pending" && item.requester_id !== session.id ? (
+                          <>
+                             <button
+                               type="button"
+                               className="w-full sm:w-auto rounded-lg bg-green-600 hover:bg-green-500 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors flex justify-center items-center gap-2"
+                               onClick={() =>
+                                 setConfirm({
+                                   title: "Approve Access Request",
+                                   message: `Grant ${item.requested_action} clearance on ${item.resource_type} for officer ${item.requester_username}.`,
+                                   confirmLabel: "Approve Clearance",
+                                   run: async () => {
+                                     await apiFetch(`/api/access-requests/${item.id}/approve`, {
+                                       method: "POST",
+                                       body: JSON.stringify({ note: "Approved from the request register." }),
+                                     });
+                                     setItems((current) => (current ?? []).filter((row) => row.id !== item.id));
+                                     setNotice("Request approved.");
+                                   },
+                                 })
+                               }
+                             >
+                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                               Approve
+                             </button>
+                             <button
+                               type="button"
+                               className="w-full sm:w-auto rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 px-6 py-2.5 text-sm font-bold text-red-700 shadow-sm transition-colors flex justify-center items-center gap-2"
+                               onClick={() =>
+                                 setConfirm({
+                                   title: "Reject Access Request",
+                                   message: `Deny the request from ${item.requester_username}.`,
+                                   confirmLabel: "Reject Request",
+                                   run: async () => {
+                                     await apiFetch(`/api/access-requests/${item.id}/reject`, {
+                                       method: "POST",
+                                       body: JSON.stringify({ note: "Rejected from the request register." }),
+                                     });
+                                     setItems((current) => (current ?? []).filter((row) => row.id !== item.id));
+                                     setNotice("Request rejected.");
+                                   },
+                                 })
+                               }
+                             >
+                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                               Reject
+                             </button>
+                          </>
+                       ) : null}
+                       
+                       {scope === "active" ? (
+                         <button
+                           type="button"
+                           className="w-full sm:w-auto rounded-lg border border-red-200 bg-red-50 hover:bg-red-600 hover:text-white px-6 py-2.5 text-sm font-bold text-red-700 shadow-sm transition-colors flex justify-center items-center gap-2"
+                           onClick={() =>
+                             setConfirm({
+                               title: "Revoke Active Clearance",
+                               message: `Immediately revoke operational access for ${item.requester_username} on ${item.case_number}.`,
+                               confirmLabel: "Revoke Access Now",
+                               run: async () => {
+                                 await apiFetch(`/api/access-requests/${item.id}/revoke`, {
+                                   method: "POST",
+                                   body: JSON.stringify({ note: "Access grant revoked early by supervisor." }),
+                                 });
+                                 setItems((current) => (current ?? []).filter((row) => row.id !== item.id));
+                                 setNotice("Access grant successfully revoked.");
+                               },
+                             })
+                           }
+                         >
+                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                           Revoke Clearance
+                         </button>
+                       ) : null}
+                    </div>
+                 </div>
+              </li>
+            ))}
+          </ul>
         ) : null}
       </section>
 
       {requestModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-lg border border-line bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-navy">Request Case Access</h3>
-            <p className="mt-1 text-sm text-muted">
-              Submit an access request to the owning police department for case examination or trial proceedings.
-            </p>
-            {modalError ? (
-              <p role="alert" className="mt-3 rounded-md bg-danger-bg p-2 text-sm text-danger">
-                {modalError}
-              </p>
-            ) : null}
-            <form onSubmit={handleCreateCaseRequest} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-navy">
-                  Case Number
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+               <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+               <div>
+                  <h3 className="text-lg font-bold text-slate-900">Request Case Access</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">Submit operational justification for authorization.</p>
+               </div>
+            </div>
+            
+            <div className="p-6">
+              {modalError ? (
+                <div role="alert" className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                  {modalError}
+                </div>
+              ) : null}
+              <form onSubmit={handleCreateCaseRequest} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Target Case Number
+                  </label>
                   <input
                     required
                     type="text"
                     placeholder="e.g. CASE-2026-001"
-                    className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                    className="w-full rounded-md border-2 border-slate-200 px-3 py-2 text-sm font-mono focus:border-blue-500 focus:ring-0 outline-none transition-colors"
                     value={caseNumber}
                     onChange={(e) => setCaseNumber(e.target.value)}
                   />
-                </label>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-navy">
-                  Justification
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Operational Justification
+                  </label>
                   <textarea
                     required
                     minLength={10}
-                    rows={3}
+                    rows={4}
                     placeholder="Provide official operational or legal reason for accessing this case..."
-                    className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                    className="w-full rounded-md border-2 border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-0 outline-none transition-colors"
                     value={justification}
                     onChange={(e) => setJustification(e.target.value)}
                   />
+                </div>
+                <label className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={emergency}
+                    onChange={(e) => setEmergency(e.target.checked)}
+                    className="rounded border-red-300 text-red-600 focus:ring-red-500 cursor-pointer w-5 h-5"
+                  />
+                  <div>
+                     <span className="block text-sm font-bold text-red-800">Urgent / Emergency Access</span>
+                     <span className="block text-xs text-red-600 mt-0.5">Request a 24-hour temporary clearance bypassing standard review queues.</span>
+                  </div>
                 </label>
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={emergency}
-                  onChange={(e) => setEmergency(e.target.checked)}
-                  className="rounded border-line"
-                />
-                <span>Urgent / Emergency Access (24-hour temporary grant)</span>
-              </label>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="rounded-md border border-line px-4 py-2 text-sm"
-                  onClick={() => setRequestModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="rounded-md bg-navy px-4 py-2 text-sm text-white disabled:opacity-50"
-                >
-                  {busy ? "Submitting…" : "Submit Request"}
-                </button>
-              </div>
-            </form>
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="rounded-lg border border-slate-300 bg-white hover:bg-slate-50 px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors"
+                    onClick={() => setRequestModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={busy}
+                    className="rounded-lg bg-blue-600 hover:bg-blue-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors flex items-center gap-2 disabled:opacity-70"
+                  >
+                    {busy ? (
+                       <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Submitting…</>
+                    ) : (
+                       "Submit Request"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       ) : null}

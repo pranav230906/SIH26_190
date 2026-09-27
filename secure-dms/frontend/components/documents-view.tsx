@@ -108,33 +108,37 @@ export function DocumentsView() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-4 mb-2">
         <div>
-          <p className="text-sm text-muted">Documents</p>
-          <h2 className="mt-1 text-2xl font-semibold text-navy">{caseRecord?.case_number ?? "Case documents"}</h2>
-          <p className="mt-1 text-sm text-muted">{caseRecord?.title ?? "Loading case"}</p>
+          <nav aria-label="Breadcrumb" className="text-sm font-medium text-slate-500 mb-1 flex items-center gap-2">
+            <Link href={`/cases/${caseId}`} className="hover:text-blue-600 transition-colors">Case {caseRecord?.case_number ?? "..."}</Link>
+            <span>/</span>
+            <span className="text-slate-900">Documents</span>
+          </nav>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Case Documents</h2>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {canRequest && !restricted ? (
-            <button type="button" className="rounded-md border border-line bg-white px-3 py-2 text-sm" onClick={() => setRequestOpen(true)}>
-              Request access
+            <button type="button" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm" onClick={() => setRequestOpen(true)}>
+              Request Access
             </button>
           ) : null}
           {canUpload && !restricted ? (
-            <button type="button" className="rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => setUploadOpen(true)}>
-              Upload document
+            <button type="button" className="rounded-md bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm flex items-center gap-2" onClick={() => setUploadOpen(true)}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              Upload Document
             </button>
           ) : null}
         </div>
       </header>
 
       {error ? (
-        <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">
+        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 shadow-sm">
           {error}
         </p>
       ) : null}
       {notice ? (
-        <p className="rounded-md border border-line bg-white px-4 py-3 text-sm text-navy">{notice}</p>
+        <p className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 shadow-sm">{notice}</p>
       ) : null}
 
       {restricted ? (
@@ -150,31 +154,28 @@ export function DocumentsView() {
       ) : (
         <>
           <form
-            className="grid gap-3 rounded-lg border border-line bg-white p-4 md:grid-cols-5"
+            className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-5"
             onSubmit={(event) => {
               event.preventDefault();
               setAppliedQuery(query);
             }}
           >
             <label className="text-sm md:col-span-2">
-              Search
+              <span className="font-medium text-slate-700">Search</span>
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="mt-1 w-full rounded-md border border-line px-3 py-2"
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Number, title, or filename"
               />
             </label>
-            <Select label="Document type" value={documentType} onChange={setDocumentType} options={DOCUMENT_TYPES} labelFor={documentTypeLabel} />
-            <Select label="Classification" value={classification} onChange={setClassification} options={CLASSIFICATIONS} labelFor={documentClassificationLabel} />
+            <Select label="Type" value={documentType} onChange={setDocumentType} options={DOCUMENT_TYPES} labelFor={documentTypeLabel} />
+            <Select label="Security" value={classification} onChange={setClassification} options={CLASSIFICATIONS} labelFor={documentClassificationLabel} />
             <Select label="Status" value={status} onChange={setStatus} options={STATUSES} labelFor={documentStatusLabel} />
-            <div className="flex items-end gap-2 md:col-span-5">
-              <button type="submit" className="rounded-md bg-navy px-3 py-2 text-sm text-white">
-                Search
-              </button>
+            <div className="flex items-end justify-end gap-3 md:col-span-5 border-t border-slate-100 pt-3 mt-1">
               <button
                 type="button"
-                className="rounded-md border border-line px-3 py-2 text-sm"
+                className="rounded-md border border-transparent px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
                 onClick={() => {
                   setQuery("");
                   setAppliedQuery("");
@@ -183,30 +184,32 @@ export function DocumentsView() {
                   setStatus("");
                 }}
               >
-                Clear filters
+                Clear Filters
+              </button>
+              <button type="submit" className="rounded-md bg-slate-900 hover:bg-slate-800 transition-colors px-5 py-2 text-sm font-medium text-white shadow-sm">
+                Apply Search
               </button>
             </div>
           </form>
 
           {documents === null ? (
-            error ? null : <p className="text-sm text-muted">Loading documents</p>
+            error ? null : <p className="text-sm text-slate-500 mt-4">Loading documents...</p>
           ) : documents.items.length === 0 ? (
-            <p className="rounded-lg border border-line bg-white px-4 py-6 text-sm text-muted">No documents match these filters.</p>
+            <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 shadow-sm mt-4">No documents match your search criteria.</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-line bg-white">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-line text-muted">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm mt-4">
+              <table className="min-w-full text-left text-sm whitespace-nowrap">
+                <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wider text-slate-500 uppercase font-semibold">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Document</th>
-                    <th className="px-4 py-3 font-medium">Type</th>
-                    <th className="px-4 py-3 font-medium">Classification</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Created by</th>
-                    <th className="px-4 py-3 font-medium">Updated</th>
-                    <th className="px-4 py-3 font-medium">Actions</th>
+                    <th className="px-6 py-4">Document Details</th>
+                    <th className="px-6 py-4">Type & Security</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Author</th>
+                    <th className="px-6 py-4">Updated</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                   {documents.items.map((item) => (
                     <DocumentRow
                       key={item.id}
@@ -268,42 +271,47 @@ function DocumentRow({
 }) {
   const locked = item.status === "SEALED" || item.status === "ARCHIVED";
   return (
-    <tr className="border-b border-line last:border-0">
-      <td className="px-4 py-3">
-        <p className="font-medium text-navy">{item.document_number}</p>
-        <p className="mt-1">{item.title}</p>
+    <tr className="hover:bg-slate-50 transition-colors group">
+      <td className="px-6 py-4 max-w-[240px] truncate">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-400">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          </div>
+          <div className="truncate">
+            <p className="font-semibold text-slate-900 truncate">{item.title}</p>
+            <p className="text-xs text-slate-500 font-mono mt-0.5">{item.document_number}</p>
+          </div>
+        </div>
       </td>
-      <td className="px-4 py-3">
-        <DocumentTypeBadge value={item.document_type} />
+      <td className="px-6 py-4 space-y-2">
+        <div><DocumentTypeBadge value={item.document_type} /></div>
+        <div><DocumentClassificationBadge value={item.classification} /></div>
       </td>
-      <td className="px-4 py-3">
-        <DocumentClassificationBadge value={item.classification} />
-      </td>
-      <td className="px-4 py-3">
+      <td className="px-6 py-4">
         <DocumentStatusBadge value={item.status} />
       </td>
-      <td className="px-4 py-3">{item.created_by_name}</td>
-      <td className="px-4 py-3">{formatDay(item.updated_at)}</td>
-      <td className="px-4 py-3">
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/documents/${item.id}`} className="rounded-md border border-line px-2 py-1 text-xs">
-            View
+      <td className="px-6 py-4 text-slate-700">{item.created_by_name}</td>
+      <td className="px-6 py-4 text-slate-500 text-sm">{formatDay(item.updated_at)}</td>
+      <td className="px-6 py-4 text-right">
+        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Link href={`/documents/${item.id}`} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm">
+            Open
           </Link>
           {canDownload ? (
-            <button type="button" className="rounded-md border border-line px-2 py-1 text-xs" onClick={() => downloadDocument(item.id, onError)}>
+            <button type="button" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm" onClick={() => downloadDocument(item.id, onError)}>
               Download
             </button>
           ) : null}
           {canUpdate && !locked ? (
-            <Link href={`/documents/${item.id}?edit=1`} className="rounded-md border border-line px-2 py-1 text-xs">
-              Edit metadata
+            <Link href={`/documents/${item.id}?edit=1`} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm">
+              Edit
             </Link>
           ) : null}
           {item.allowed_status_transitions.map((target) => (
             <button
               key={target}
               type="button"
-              className="rounded-md border border-line px-2 py-1 text-xs"
+              className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 shadow-sm"
               onClick={() => changeStatus(item.id, target, onChanged, onError)}
             >
               {STATUS_ACTION[target] ?? target}
@@ -329,9 +337,9 @@ function Select({
   labelFor: (value: string) => string;
 }) {
   return (
-    <label className="text-sm">
-      {label}
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2">
+    <label className="text-sm font-medium text-slate-700">
+      <span className="block mb-1.5">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
         <option value="">All</option>
         {options.map((option) => (
           <option key={option} value={option}>

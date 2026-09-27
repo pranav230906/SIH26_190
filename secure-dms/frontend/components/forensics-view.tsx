@@ -39,50 +39,70 @@ export function ForensicsView({ caseId }: { caseId: string }) {
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-4 mb-2">
         <div>
-          <h2 className="text-xl font-semibold text-navy">Forensic requests</h2>
-          <p className="mt-1 text-sm text-muted">Requests name the evidence required for examination. They do not copy the original file.</p>
+          <nav aria-label="Breadcrumb" className="text-sm font-medium text-slate-500 mb-1 flex items-center gap-2">
+            <Link href={`/cases/${caseId}`} className="hover:text-blue-600 transition-colors">Case</Link>
+            <span>/</span>
+            <span className="text-slate-900">Forensics</span>
+          </nav>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Forensic Requests</h2>
         </div>
         {canCreate ? (
-          <button type="button" className="rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => setOpen(true)}>
-            Request examination
+          <button type="button" className="rounded-md bg-purple-600 hover:bg-purple-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm flex items-center gap-2" onClick={() => setOpen(true)}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+            Request Examination
           </button>
         ) : null}
       </header>
       {error ? <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">{error}</p> : null}
       {notice ? <p className="rounded-md border border-line bg-white px-4 py-3 text-sm">{notice}</p> : null}
-      <div className="overflow-x-auto rounded-lg border border-line bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-line text-muted">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="min-w-full text-left text-sm whitespace-nowrap">
+          <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wider text-slate-500 uppercase font-semibold">
             <tr>
-              <th className="px-4 py-3 font-medium">Request number</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Requested by</th>
-              <th className="px-4 py-3 font-medium">Assigned examiner</th>
-              <th className="px-4 py-3 font-medium">Evidence</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Created</th>
-              <th className="px-4 py-3 font-medium">Action</th>
+              <th className="px-6 py-4">Request</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4">Requested By</th>
+              <th className="px-6 py-4">Assigned Examiner</th>
+              <th className="px-6 py-4">Evidence</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {items.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-muted" colSpan={8}>No forensic requests are visible for this case.</td>
+                <td className="px-6 py-8 text-center text-slate-500" colSpan={6}>No forensic requests are visible for this case.</td>
               </tr>
             ) : (
               items.map((item) => (
-                <tr key={item.id} className="border-t border-line">
-                  <td className="px-4 py-3">{item.request_number}</td>
-                  <td className="px-4 py-3">{forensicTypeLabel(item.request_type)}</td>
-                  <td className="px-4 py-3">{item.requested_by_name}</td>
-                  <td className="px-4 py-3">{item.assigned_to_name ?? "Unassigned"}</td>
-                  <td className="px-4 py-3">{item.evidence_count}</td>
-                  <td className="px-4 py-3">{forensicStatusLabel(item.status)}</td>
-                  <td className="px-4 py-3">{formatTimestamp(item.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <Link href={`/forensic-requests/${item.id}`} className="text-navy underline">Open</Link>
+                <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <p className="font-semibold text-slate-900">{item.request_number}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{forensicTypeLabel(item.request_type)}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                      item.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                      item.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                      item.status === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-800' :
+                      'bg-purple-100 text-purple-800'
+                    }`}>
+                      {forensicStatusLabel(item.status)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <p className="text-slate-900 font-medium">{item.requested_by_name}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{formatTimestamp(item.created_at).split(' ')[0]}</p>
+                  </td>
+                  <td className="px-6 py-4 text-slate-700">{item.assigned_to_name ?? "Unassigned"}</td>
+                  <td className="px-6 py-4 text-slate-700 font-mono text-xs">{item.evidence_count} items</td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link href={`/forensic-requests/${item.id}`} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm">
+                        Open Report
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))

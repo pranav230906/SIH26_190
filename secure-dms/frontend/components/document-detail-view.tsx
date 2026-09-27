@@ -11,6 +11,8 @@ import { ApiClientError, apiFetch, apiFetchBlob } from "@/lib/api";
 import {
   documentClassificationLabel,
   documentStatusLabel,
+  documentTypeLabel,
+  formatDay,
   formatFileSize,
   formatTimestamp,
 } from "@/lib/format";
@@ -241,163 +243,223 @@ export function DocumentDetailView() {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-lg border border-line bg-white p-6">
-        <p className="text-sm text-muted">{record.document_number}</p>
-        <h2 className="mt-1 text-2xl font-semibold text-navy">{record.title}</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <DocumentStatusBadge value={record.status} />
-          <DocumentClassificationBadge value={record.classification} />
+      <header className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-2">
+        <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+          <Link href={`/cases/${record.case_id}`} className="hover:text-blue-600 transition-colors">Case {record.case_number}</Link>
+          <span>/</span>
+          <Link href={`/cases/${record.case_id}/documents`} className="hover:text-blue-600 transition-colors">Documents</Link>
+          <span>/</span>
+          <span className="text-slate-900">{record.document_number}</span>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <a href="#document-preview" className="rounded-md border border-line px-3 py-2 text-sm">
-            View
-          </a>
-          {canDownload ? (
-            <button type="button" className="rounded-md border border-line px-3 py-2 text-sm" onClick={download}>
-              Download official
-            </button>
-          ) : null}
-          {canUpdate && !locked ? (
-            <button type="button" className="rounded-md border border-line px-3 py-2 text-sm" onClick={() => setEditing((current) => !current)}>
-              Edit
-            </button>
-          ) : null}
-          {record.allowed_status_transitions.map((target) => (
-            <button key={target} type="button" className="rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => changeStatus(target)}>
-              {STATUS_ACTION[target] ?? documentStatusLabel(target)}
-            </button>
-          ))}
-          {record.allowed_actions?.includes("TRANSFER") ? (
-            <button
-              type="button"
-              className="rounded-md border border-line px-3 py-2 text-sm"
-              onClick={() => {
-                setTransferReason("");
-                setTransferToUserId("");
-                setTransferOpen(true);
-              }}
-            >
-              Transfer custody
-            </button>
-          ) : null}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{record.title}</h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <DocumentStatusBadge value={record.status} />
+              <DocumentClassificationBadge value={record.classification} />
+              <DocumentTypeBadge value={record.document_type} />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href="#document-preview" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+              View Preview
+            </a>
+            {canDownload ? (
+              <button type="button" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm" onClick={download}>
+                Download Official
+              </button>
+            ) : null}
+            {canUpdate && !locked ? (
+              <button type="button" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm" onClick={() => setEditing((current) => !current)}>
+                Edit Details
+              </button>
+            ) : null}
+            {record.allowed_status_transitions.map((target) => (
+              <button key={target} type="button" className="rounded-md bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm" onClick={() => changeStatus(target)}>
+                {STATUS_ACTION[target] ?? documentStatusLabel(target)}
+              </button>
+            ))}
+            {record.allowed_actions?.includes("TRANSFER") ? (
+              <button
+                type="button"
+                className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm"
+                onClick={() => {
+                  setTransferReason("");
+                  setTransferToUserId("");
+                  setTransferOpen(true);
+                }}
+              >
+                Transfer Custody
+              </button>
+            ) : null}
+          </div>
         </div>
       </header>
 
       {error ? <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">{error}</p> : null}
       {notice ? <p className="rounded-md border border-line bg-white px-4 py-3 text-sm">{notice}</p> : null}
 
-      <section className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Document information</h3>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-          <Info label="Document type" value={<DocumentTypeBadge value={record.document_type} />} />
-          <Info label="Case" value={<Link className="text-navy underline" href={`/cases/${record.case_id}`}>{record.case_number}</Link>} />
-          <Info label="Owner department" value={record.owner_department_name || record.owner_department_code || "Police Department"} />
-          <Info label="Created by" value={record.created_by_name} />
-          <Info label="Current custodian" value={record.custodian_name || record.created_by_name} />
-          <Info label="Created date" value={formatTimestamp(record.created_at)} />
-          <Info label="Updated date" value={formatTimestamp(record.updated_at)} />
-          <Info label="File type" value={record.mime_type} />
-          <Info label="File size" value={formatFileSize(record.file_size)} />
-          <Info label="Approved by" value={record.approved_by_name ?? "Not approved"} />
-          <Info label="Official version" value={record.official_version_label ?? "None yet"} />
-        </dl>
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* LEFT COLUMN: Content & History */}
+        <div className="lg:col-span-2 space-y-6">
+          <section id="document-preview" className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900">Document Preview</h3>
+            {pageText ? (
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-5">
+                <p className="text-sm font-semibold text-slate-700">Page {pageText.page_number}</p>
+                <p className="mt-3 whitespace-pre-wrap text-sm text-slate-900 font-mono leading-relaxed">{pageText.text}</p>
+              </div>
+            ) : null}
+            {previewUrl && record.mime_type === "application/pdf" ? (
+              <iframe title="Document preview" src={search.get("page") ? `${previewUrl}#page=${search.get("page")}` : previewUrl} className="mt-4 h-[42rem] w-full rounded-lg border border-slate-200 bg-slate-100" />
+            ) : null}
+            {previewUrl && record.mime_type !== "application/pdf" ? (
+              <img alt="" src={previewUrl} className="mt-4 max-h-[42rem] rounded-lg border border-slate-200 bg-slate-100 object-contain w-full" />
+            ) : null}
+            {previewNote ? (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 flex gap-3 text-sm text-amber-800">
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                <p>{previewNote}</p>
+              </div>
+            ) : null}
+          </section>
 
-      <section className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">OCR status</h3>
-        {ocr ? (
-          <div className="mt-3 space-y-2 text-sm">
-            <p>
-              {ocrLabel(ocr.ocr_status)} {ocr.pages_processed} / {ocr.total_pages} pages
-            </p>
-            {ocr.extraction_method ? <p className="text-muted">{ocr.extraction_method.replaceAll("_", " ")}</p> : null}
-            {ocr.error ? <p className="text-danger">{ocr.error}</p> : null}
-            <div className="mt-4">
-              <h4 className="font-medium">Search index</h4>
-              <p className="mt-1">Lexical: {ocr.lexical_status}</p>
-              <p>Semantic: {ocr.semantic_status}</p>
-              <p>OCR: {ocr.ocr_status}</p>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+             <DocumentRevisions documentId={record.id} locked={locked} />
+          </div>
+
+          <AuditTimeline title="Audit History" documentId={record.id} />
+        </div>
+
+        {/* RIGHT COLUMN: Metadata & Settings */}
+        <div className="lg:col-span-1 space-y-6">
+          
+          {editing ? (
+            <form onSubmit={saveMetadata} className="space-y-4 rounded-xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
+              <h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wider">Edit Metadata</h3>
+              <label className="block text-sm font-medium text-slate-700">
+                Title
+                <input name="title" required minLength={3} maxLength={200} defaultValue={record.title} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+              </label>
+              <label className="block text-sm font-medium text-slate-700">
+                Classification
+                <select name="classification" defaultValue={record.classification} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                  {CLASSIFICATIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {documentClassificationLabel(option)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm font-medium text-slate-700">
+                Description
+                <textarea name="description" defaultValue={record.description ?? ""} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" rows={4} />
+              </label>
+              <div className="flex gap-2">
+                <button type="submit" className="rounded-md bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm">
+                  Save Changes
+                </button>
+                <button type="button" onClick={() => setEditing(false)} className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : null}
+
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-4">Metadata</h3>
+            <dl className="grid gap-y-4 gap-x-4 sm:grid-cols-2">
+              <Info label="Document Type" value={documentTypeLabel(record.document_type)} />
+              <Info label="File Size" value={formatFileSize(record.file_size)} />
+              <Info label="File Type" value={record.mime_type.split('/').pop()?.toUpperCase() || record.mime_type} />
+              <Info label="Current Version" value={record.official_version_label ?? "v1.0"} />
+              <div className="sm:col-span-2 pt-2 border-t border-slate-100"></div>
+              <Info label="Created By" value={record.created_by_name} />
+              <Info label="Custodian" value={record.custodian_name || record.created_by_name} />
+              <Info label="Department" value={record.owner_department_name || record.owner_department_code || "N/A"} />
+              <Info label="Approved By" value={record.approved_by_name ?? "Not Approved"} />
+              <div className="sm:col-span-2 pt-2 border-t border-slate-100"></div>
+              <Info label="Created" value={formatDay(record.created_at)} />
+              <Info label="Updated" value={formatDay(record.updated_at)} />
+            </dl>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-3">Description</h3>
+            <p className="text-sm text-slate-700 leading-relaxed">{record.description || "No description provided."}</p>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold tracking-wider text-slate-500 uppercase">Intelligence & Search</h3>
+              {ocr && ocr.ocr_status === "COMPLETED" && (
+                <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
+              )}
             </div>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-muted">Index status is not available.</p>
-        )}
-        <button type="button" disabled={indexBusy} className="mt-4 rounded-md border border-line px-3 py-2 text-sm" onClick={() => rebuildIndex("reindex")}>
-          Reindex
-        </button>
-        <button type="button" disabled={indexBusy} className="ml-2 mt-4 rounded-md border border-line px-3 py-2 text-sm" onClick={() => rebuildIndex("ocr")}>
-          Run OCR
-        </button>
-      </section>
+            {ocr ? (
+              <div className="space-y-4 text-sm">
+                <div>
+                  <div className="flex justify-between text-slate-700 mb-1">
+                    <span>{ocrLabel(ocr.ocr_status)}</span>
+                    <span className="font-mono">{ocr.pages_processed} / {ocr.total_pages}</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-1.5">
+                    <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${Math.max(5, (ocr.pages_processed / Math.max(1, ocr.total_pages)) * 100)}%` }}></div>
+                  </div>
+                </div>
+                {ocr.extraction_method ? <p className="text-slate-500 text-xs">Method: {ocr.extraction_method.replaceAll("_", " ")}</p> : null}
+                {ocr.error ? <p className="text-red-600 text-xs">{ocr.error}</p> : null}
+                
+                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100">
+                  <div>
+                    <p className="text-xs text-slate-500">Lexical Index</p>
+                    <p className="font-medium text-slate-900">{ocrLabel(ocr.lexical_status)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Semantic Vector</p>
+                    <p className="font-medium text-slate-900">{ocrLabel(ocr.semantic_status)}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Index status is not available.</p>
+            )}
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button type="button" disabled={indexBusy} className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm" onClick={() => rebuildIndex("reindex")}>
+                Reindex Search
+              </button>
+              <button type="button" disabled={indexBusy} className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm" onClick={() => rebuildIndex("ocr")}>
+                Force OCR Run
+              </button>
+            </div>
+          </section>
 
-      <section className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Description</h3>
-        <p className="mt-3 text-sm">{record.description || "No description."}</p>
-      </section>
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-3">Integrity Chain</h3>
+            <p className="text-xs text-slate-500 mb-1">Algorithm: {record.hash_algorithm}</p>
+            <div className="bg-slate-50 border border-slate-200 rounded p-2 overflow-hidden">
+               <p className="break-all font-mono text-[10px] text-slate-600">{record.file_hash}</p>
+            </div>
+          </section>
+          
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-3">Access Controls</h3>
+            <div className="flex items-center gap-2 text-sm text-green-700 mb-4 bg-green-50 p-2 rounded border border-green-200">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Your access: AUTHORIZED
+            </div>
+            {!canDownload && canRequest ? (
+              <button type="button" className="w-full rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm" onClick={() => setRequestOpen(true)}>
+                Request Elevate Access
+              </button>
+            ) : null}
+          </section>
 
-      <section className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Integrity hash</h3>
-        <p className="mt-3 text-sm text-muted">{record.hash_algorithm}</p>
-        <p className="mt-1 break-all font-mono text-sm">{record.file_hash}</p>
-      </section>
+        </div>
+      </div>
 
-      <DocumentRevisions documentId={record.id} locked={locked} />
 
-      <section id="document-preview" className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Document preview</h3>
-        {pageText ? (
-          <div className="mt-4 rounded-md border border-line bg-paper p-4">
-            <p className="text-sm font-medium">Page {pageText.page_number}</p>
-            <p className="mt-2 whitespace-pre-wrap text-sm">{pageText.text}</p>
-          </div>
-        ) : null}
-        {previewUrl && record.mime_type === "application/pdf" ? (
-          <iframe title="Document preview" src={search.get("page") ? `${previewUrl}#page=${search.get("page")}` : previewUrl} className="mt-4 h-[32rem] w-full rounded-md border border-line" />
-        ) : null}
-        {previewUrl && record.mime_type !== "application/pdf" ? (
-          <img alt="" src={previewUrl} className="mt-4 max-h-[32rem] rounded-md border border-line" />
-        ) : null}
-        {previewNote ? <p className="mt-4 text-sm text-muted">{previewNote}</p> : null}
-      </section>
-
-      <AuditTimeline title="Audit history" documentId={record.id} />
-
-      <section className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Access</h3>
-        <p className="mt-3 text-sm">Your access: AUTHORIZED</p>
-        {!canDownload && canRequest ? (
-          <button type="button" className="mt-4 rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => setRequestOpen(true)}>
-            Request access
-          </button>
-        ) : null}
-      </section>
-
-      {editing ? (
-        <form onSubmit={saveMetadata} className="space-y-3 rounded-lg border border-line bg-white p-6">
-          <h3 className="text-base font-semibold">Edit metadata</h3>
-          <label className="block text-sm">
-            Title
-            <input name="title" required minLength={3} maxLength={200} defaultValue={record.title} className="mt-1 w-full rounded-md border border-line px-3 py-2" />
-          </label>
-          <label className="block text-sm">
-            Classification
-            <select name="classification" defaultValue={record.classification} className="mt-1 w-full rounded-md border border-line px-3 py-2">
-              {CLASSIFICATIONS.map((option) => (
-                <option key={option} value={option}>
-                  {documentClassificationLabel(option)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            Description
-            <textarea name="description" defaultValue={record.description ?? ""} className="mt-1 w-full rounded-md border border-line px-3 py-2" rows={4} />
-          </label>
-          <button type="submit" className="rounded-md bg-navy px-3 py-2 text-sm text-white">
-            Save metadata
-          </button>
-        </form>
-      ) : null}
 
       {requestOpen ? (
         <RequestDownload
@@ -475,8 +537,8 @@ export function DocumentDetailView() {
 function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-muted">{label}</dt>
-      <dd className="mt-1">{value}</dd>
+      <dt className="text-xs text-slate-500">{label}</dt>
+      <dd className="mt-0.5 text-sm font-medium text-slate-900 truncate">{value}</dd>
     </div>
   );
 }

@@ -135,34 +135,56 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-8">
         <div>
-          <h2 className="text-xl font-semibold">{roleLabel(session.role.name)}</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
-            {session.full_name} · {session.department.name} ({session.department.code})
+          <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">
+            Good morning, {session.full_name.split(' ')[0]}
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+            Case activity and actions requiring your attention
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {can(permissions, "CASE.READ") ? (
-            <Link href="/cases" className="rounded-md bg-navy px-3 py-2 text-sm text-white">
-              View cases
+            <Link href="/cases" className="rounded-md bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm">
+              View Cases
             </Link>
           ) : null}
           {can(permissions, "ACCESS_REQUEST.APPROVE") || can(permissions, "ACCESS_REQUEST.READ") ? (
-            <Link href="/requests" className="rounded-md border border-line bg-white px-3 py-2 text-sm">
-              Review requests
+            <Link href="/requests" className="rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+              Review Requests
             </Link>
           ) : null}
           {can(permissions, "USER.READ") ? (
-            <Link href="/users" className="rounded-md border border-line bg-white px-3 py-2 text-sm">
-              User management
+            <Link href="/users" className="rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+              Users
             </Link>
           ) : null}
           {can(permissions, "DEPARTMENT.READ") ? (
-            <Link href="/departments" className="rounded-md border border-line bg-white px-3 py-2 text-sm">
-              Department management
+            <Link href="/departments" className="rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+              Departments
             </Link>
           ) : null}
+        </div>
+      </div>
+      
+      {/* Metrics Row (for standard roles, we summarize from loaded data) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Active Cases</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900">{cases === null ? "-" : inProgress}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Pending Requests</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900">{requests === null ? "-" : requests.filter(r => r.status === "PENDING").length}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Pending Approvals</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900">{pending === null ? "-" : pending.length}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Total Cases</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900">{cases === null ? "-" : totalCases}</p>
         </div>
       </div>
 

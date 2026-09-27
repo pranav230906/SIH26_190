@@ -86,7 +86,7 @@ export function AppShell({ user, children }: { user: MeResponse; children: React
   }, []);
 
   return (
-    <div className="min-h-screen bg-paper text-ink lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
+    <div className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2"
@@ -96,8 +96,8 @@ export function AppShell({ user, children }: { user: MeResponse; children: React
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex min-h-screen min-w-0 flex-col">
         <TopNav title={titleFor(pathname)} user={user} onOpenNav={() => setNavOpen(true)} />
-        <main id="main" className="flex-1 px-4 py-6 sm:px-8 sm:py-8">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        <main id="main" className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
     </div>

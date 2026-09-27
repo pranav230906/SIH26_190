@@ -96,7 +96,7 @@ export function CourtPackagesView() {
 
       {canCreate ? (
         <form
-          className="grid gap-3 rounded-lg border border-line bg-white p-5"
+          className="grid gap-6 rounded-sm border-2 border-slate-900 bg-[#fdfdfc] p-8 shadow-sm relative overflow-hidden"
           onSubmit={async (event) => {
             event.preventDefault();
             setError("");
@@ -121,151 +121,205 @@ export function CourtPackagesView() {
             }
           }}
         >
-          <h2 className="text-base font-semibold">Build a package</h2>
-          <p className="text-sm text-muted">Only records you can already read are accepted. Submission stores their hashes, custody, and approval history.</p>
-          <label className="text-sm">
-            Case
-            <select required value={caseId} onChange={(event) => setCaseId(event.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2">
-              <option value="">Select a case</option>
-              {cases.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.case_number} {item.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            Title
-            <input required minLength={3} value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2" />
-          </label>
-          <fieldset className="grid gap-2 text-sm">
-            <legend className="font-medium">Documents</legend>
-            {documents.map((item) => (
-              <label key={item.id} className="flex items-center gap-2">
-                <input type="checkbox" checked={selectedDocuments.includes(item.id)} onChange={() => toggle(selectedDocuments, item.id, setSelectedDocuments)} />
-                {item.label}
-              </label>
-            ))}
-          </fieldset>
-          <fieldset className="grid gap-2 text-sm">
-            <legend className="font-medium">Evidence</legend>
-            {evidence.map((item) => (
-              <label key={item.id} className="flex items-center gap-2">
-                <input type="checkbox" checked={selectedEvidence.includes(item.id)} onChange={() => toggle(selectedEvidence, item.id, setSelectedEvidence)} />
-                {item.label}
-              </label>
-            ))}
-          </fieldset>
-          <button type="submit" className="w-fit rounded-md bg-navy px-3 py-2 text-sm text-white">
-            Submit package
-          </button>
+          <div className="absolute top-0 left-0 w-full h-2 bg-slate-900"></div>
+          <div className="text-center mb-4">
+             <h2 className="text-3xl font-serif font-bold text-slate-900 uppercase tracking-widest border-b-2 border-slate-900 inline-block pb-2">Judicial Export Preparation</h2>
+             <p className="text-sm font-serif text-slate-600 mt-4 max-w-2xl mx-auto italic">Official court packages compile selected case documents and forensic evidence into a cryptographically sealed archive. Only immutable, authenticated records may be attached.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8 border-t border-b border-slate-300 py-6">
+            <div className="space-y-4">
+               <label className="block text-sm font-bold uppercase tracking-wider text-slate-900 font-sans">
+                 Source Case Reference
+                 <select required value={caseId} onChange={(event) => setCaseId(event.target.value)} className="mt-2 w-full rounded-sm border-2 border-slate-400 bg-white px-3 py-2 font-serif focus:border-slate-900 focus:ring-0">
+                   <option value="">Select a verified case</option>
+                   {cases.map((item) => (
+                     <option key={item.id} value={item.id}>
+                       {item.case_number} - {item.title}
+                     </option>
+                   ))}
+                 </select>
+               </label>
+               <label className="block text-sm font-bold uppercase tracking-wider text-slate-900 font-sans">
+                 Official Package Title
+                 <input required minLength={3} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g., State v. Doe - Initial Discovery" className="mt-2 w-full rounded-sm border-2 border-slate-400 bg-white px-3 py-2 font-serif focus:border-slate-900 focus:ring-0" />
+               </label>
+            </div>
+            
+            <div className="space-y-6">
+               <fieldset className="text-sm">
+                 <legend className="font-bold uppercase tracking-wider text-slate-900 font-sans mb-3 border-b border-slate-300 w-full pb-1">Verified Documents</legend>
+                 <div className="max-h-40 overflow-y-auto pr-2 space-y-2 font-serif">
+                   {documents.length === 0 ? <p className="text-slate-500 italic">No approved documents available.</p> : null}
+                   {documents.map((item) => (
+                     <label key={item.id} className="flex items-start gap-3 cursor-pointer group">
+                       <input type="checkbox" className="mt-1 border-slate-400 text-slate-900 focus:ring-slate-900 cursor-pointer" checked={selectedDocuments.includes(item.id)} onChange={() => toggle(selectedDocuments, item.id, setSelectedDocuments)} />
+                       <span className="group-hover:text-slate-900 text-slate-700 leading-tight">{item.label}</span>
+                     </label>
+                   ))}
+                 </div>
+               </fieldset>
+               <fieldset className="text-sm">
+                 <legend className="font-bold uppercase tracking-wider text-slate-900 font-sans mb-3 border-b border-slate-300 w-full pb-1">Authenticated Evidence</legend>
+                 <div className="max-h-40 overflow-y-auto pr-2 space-y-2 font-serif">
+                   {evidence.length === 0 ? <p className="text-slate-500 italic">No authenticated evidence available.</p> : null}
+                   {evidence.map((item) => (
+                     <label key={item.id} className="flex items-start gap-3 cursor-pointer group">
+                       <input type="checkbox" className="mt-1 border-slate-400 text-slate-900 focus:ring-slate-900 cursor-pointer" checked={selectedEvidence.includes(item.id)} onChange={() => toggle(selectedEvidence, item.id, setSelectedEvidence)} />
+                       <span className="group-hover:text-slate-900 text-slate-700 leading-tight">{item.label}</span>
+                     </label>
+                   ))}
+                 </div>
+               </fieldset>
+            </div>
+          </div>
+          
+          <div className="flex justify-center mt-2">
+             <button type="submit" className="rounded-sm bg-slate-900 hover:bg-slate-800 transition-colors px-12 py-3 text-sm font-bold uppercase tracking-widest text-white shadow-md flex items-center gap-3">
+               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+               Seal & Submit Package
+             </button>
+          </div>
         </form>
       ) : null}
 
-      <section className="grid gap-4">
+      <section className="grid gap-8 mt-4">
         {packages.map((item) => (
-          <article key={item.id} className="rounded-lg border border-line bg-white p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="font-semibold">{item.package_number}</h3>
-                <p className="text-sm text-muted">{item.case_number} · {item.title}</p>
+          <article key={item.id} className="rounded-sm border-2 border-slate-300 bg-[#fdfdfc] shadow-lg relative overflow-hidden">
+            <div className="bg-slate-900 text-slate-100 p-6 flex flex-wrap items-end justify-between gap-6 border-b-4 border-double border-slate-700">
+              <div className="flex-1">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-2">Sealed Court Package</p>
+                <h3 className="text-3xl font-serif font-bold text-white">{item.package_number}</h3>
+                <p className="text-lg font-serif text-slate-300 italic mt-1">{item.case_number} — {item.title}</p>
               </div>
-              <p className="text-sm font-medium">{item.verification_status ?? item.status}</p>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted">Algorithm: {item.seal_algorithm ?? "Not sealed"}</span>
-              {item.seal_value ? (
-                <span className="rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-                  Judicial Seal Verified
+              <div className="text-right">
+                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${item.verification_status?.includes('mismatch') || item.status === 'ERROR' ? 'bg-red-900 text-red-100 border border-red-700' : 'bg-slate-800 text-slate-200 border border-slate-600'}`}>
+                  {item.verification_status ?? item.status}
                 </span>
+                {item.seal_value ? (
+                  <div className="mt-4 flex items-center justify-end gap-2 text-green-400">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                    <span className="text-sm font-bold uppercase tracking-widest">Judicial Seal Verified</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            
+            <div className="p-8">
+              <div className="mb-8 p-4 bg-slate-50 border border-slate-200 rounded-sm">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 font-sans border-b border-slate-200 pb-2">Cryptographic Manifest</h4>
+                <div className="grid sm:grid-cols-2 gap-4 text-sm mt-3 font-serif">
+                   <div>
+                     <span className="text-slate-500 italic block mb-1">Hashing Algorithm</span>
+                     <span className="font-mono text-slate-900 font-bold">{item.seal_algorithm ?? "N/A"}</span>
+                   </div>
+                   <div>
+                     <span className="text-slate-500 italic block mb-1">Package Digital Signature</span>
+                     {item.seal_value ? (
+                        <span className="font-mono text-[10px] break-all text-slate-900 bg-white p-2 border border-slate-200 rounded block">{item.seal_value}</span>
+                     ) : (
+                        <span className="text-slate-400 italic">Signature pending</span>
+                     )}
+                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-bold uppercase tracking-widest text-slate-900 font-sans border-b-2 border-slate-900 pb-2 flex justify-between">
+                  <span>Enclosed Exhibits & Documents</span>
+                  <span className="text-slate-500">Count: {item.items.length}</span>
+                </h4>
+                
+                <ul className="space-y-4">
+                  {item.items.map((entry) => (
+                    <li key={entry.id} className="relative pl-6 before:absolute before:left-0 before:top-2 before:w-2 before:h-2 before:bg-slate-900 before:rounded-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            <span className="text-xs font-bold uppercase tracking-widest text-slate-500 font-sans border border-slate-300 px-2 py-0.5 rounded-sm bg-white">
+                              {entry.item_type}
+                            </span>
+                            <span className="text-lg font-serif font-bold text-slate-900">{entry.label}</span>
+                          </div>
+                          <p className="font-mono text-[11px] text-slate-600 mt-2 break-all bg-slate-50 p-1.5 border border-slate-200 rounded-sm inline-block">SHA256: {entry.sha256_hash}</p>
+                          
+                          {entry.snapshot ? (
+                            <details className="mt-3 text-sm group">
+                              <summary className="cursor-pointer font-serif italic text-blue-700 hover:text-blue-900 hover:underline select-none">
+                                Review Exhibit Provenance & Chain of Custody
+                              </summary>
+                              <div className="mt-3 border-l-4 border-slate-300 pl-4 py-2">
+                                <pre className="max-h-60 overflow-auto bg-slate-900 p-4 text-[10px] text-slate-300 font-mono shadow-inner rounded-sm">
+                                  {(() => {
+                                    try {
+                                      return JSON.stringify(JSON.parse(entry.snapshot), null, 2);
+                                    } catch {
+                                      return entry.snapshot;
+                                    }
+                                  })()}
+                                </pre>
+                              </div>
+                            </details>
+                          ) : null}
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 shrink-0">
+                          {entry.document_id ? (
+                            <Link
+                              href={`/documents/${entry.document_id}`}
+                              className="rounded-sm border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm text-center"
+                            >
+                              Inspect Document
+                            </Link>
+                          ) : null}
+                          {entry.evidence_id ? (
+                            <Link
+                              href={`/evidence/${entry.evidence_id}`}
+                              className="rounded-sm border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm text-center"
+                            >
+                              Inspect Evidence
+                            </Link>
+                          ) : null}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              {canVerify ? (
+                <div className="mt-10 border-t-2 border-slate-200 pt-6 text-center">
+                   <button
+                     type="button"
+                     className="rounded-sm bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 transition-colors px-8 py-3 text-sm font-bold uppercase tracking-widest text-slate-700 shadow-sm flex items-center gap-2 mx-auto"
+                     onClick={async () => {
+                       setError("");
+                       try {
+                         const result = await apiFetch<{ verification_status: string; mismatches: string[] }>(`/api/court-packages/${item.id}/verify`, { method: "POST" });
+                         setNotice(
+                           result.mismatches.length
+                             ? `${item.package_number} mismatch: ${result.mismatches.join(", ")}`
+                             : `${item.package_number} cryptographically verified.`,
+                         );
+                         await refresh();
+                       } catch (caught) {
+                         setError(caught instanceof ApiClientError ? caught.message : "Verification failed.");
+                       }
+                     }}
+                   >
+                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                     Perform Judicial Verification
+                   </button>
+                </div>
               ) : null}
             </div>
-            {item.seal_value ? (
-              <p className="mt-1 break-all font-mono text-xs text-navy">
-                Seal: {item.seal_value}
-              </p>
-            ) : null}
-            <div className="mt-4 space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted">
-                Package Items ({item.items.length})
-              </h4>
-              <ul className="grid gap-2 text-sm">
-                {item.items.map((entry) => (
-                  <li key={entry.id} className="rounded-md border border-line p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded bg-line/60 px-1.5 py-0.5 text-xs font-semibold uppercase text-navy">
-                          {entry.item_type}
-                        </span>
-                        <span className="font-medium text-navy">{entry.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {entry.document_id ? (
-                          <Link
-                            href={`/documents/${entry.document_id}`}
-                            className="rounded border border-line px-2 py-1 text-xs text-navy hover:bg-line/20"
-                          >
-                            View document
-                          </Link>
-                        ) : null}
-                        {entry.evidence_id ? (
-                          <Link
-                            href={`/evidence/${entry.evidence_id}`}
-                            className="rounded border border-line px-2 py-1 text-xs text-navy hover:bg-line/20"
-                          >
-                            View evidence
-                          </Link>
-                        ) : null}
-                      </div>
-                    </div>
-                    <p className="mt-1 break-all font-mono text-xs text-muted">
-                      Hash: {entry.sha256_hash}
-                    </p>
-                    {entry.snapshot ? (
-                      <details className="mt-2 text-xs">
-                        <summary className="cursor-pointer font-medium text-navy hover:underline">
-                          Inspect frozen snapshot (custody & provenance)
-                        </summary>
-                        <pre className="mt-2 max-h-60 overflow-auto rounded bg-[#f6f7f8] p-2 text-xs text-navy">
-                          {(() => {
-                            try {
-                              return JSON.stringify(JSON.parse(entry.snapshot), null, 2);
-                            } catch {
-                              return entry.snapshot;
-                            }
-                          })()}
-                        </pre>
-                      </details>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {canVerify ? (
-              <button
-                type="button"
-                className="mt-4 rounded-md border border-line px-3 py-2 text-sm"
-                onClick={async () => {
-                  setError("");
-                  try {
-                    const result = await apiFetch<{ verification_status: string; mismatches: string[] }>(`/api/court-packages/${item.id}/verify`, { method: "POST" });
-                    setNotice(
-                      result.mismatches.length
-                        ? `${item.package_number} mismatch: ${result.mismatches.join(", ")}`
-                        : `${item.package_number} verified.`,
-                    );
-                    await refresh();
-                  } catch (caught) {
-                    setError(caught instanceof ApiClientError ? caught.message : "Verification failed.");
-                  }
-                }}
-              >
-                Verify package
-              </button>
-            ) : null}
           </article>
         ))}
-        {packages.length === 0 ? <p className="text-sm text-muted">No court packages are available.</p> : null}
+        {packages.length === 0 ? (
+           <div className="text-center py-16 rounded-sm border-2 border-dashed border-slate-300 bg-slate-50">
+             <p className="text-lg font-serif text-slate-500 italic">No official court packages have been compiled.</p>
+           </div>
+        ) : null}
       </section>
     </div>
   );

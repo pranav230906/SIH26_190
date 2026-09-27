@@ -109,122 +109,187 @@ export function EvidenceDetailView() {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-lg border border-line bg-white p-6">
-        <p className="text-xs font-medium tracking-wide text-navy">ORIGINAL EVIDENCE · IMMUTABLE</p>
-        <p className="mt-2 text-sm text-muted">{record.evidence_number}</p>
-        <h2 className="mt-1 text-2xl font-semibold text-navy">{record.title}</h2>
-        <div className="mt-3 flex flex-wrap gap-2 text-sm">
-          <span>{evidenceTypeLabel(record.evidence_type)}</span>
-          <DocumentClassificationBadge value={record.classification} />
-          <span>{evidenceStatusLabel(record.status)}</span>
+      <header className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-2">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold tracking-widest text-indigo-600 uppercase">Original Evidence · Immutable</p>
+          <span className="text-sm font-medium text-slate-500 font-mono">{record.evidence_number}</span>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {canDownload ? (
-            <button type="button" className="rounded-md border border-line px-3 py-2 text-sm" onClick={() => downloadFile(`/api/evidence/${record.id}/download`, setError)}>
-              Download original
-            </button>
-          ) : null}
-          <button type="button" className="rounded-md border border-line px-3 py-2 text-sm" onClick={runIntegrity}>Verify integrity</button>
-          {record.allowed_actions.includes("CREATE_ARTIFACT") ? (
-            <button type="button" className="rounded-md border border-line px-3 py-2 text-sm" onClick={() => { setSourceArtifactId(null); setArtifactOpen(true); }}>
-              Create derived artifact
-            </button>
-          ) : null}
-          {record.allowed_actions.includes("VERIFY_STATUS") ? (
-            <button type="button" className="rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => postAction("verify")}>Mark verified</button>
-          ) : null}
-          {record.allowed_actions.includes("SEAL") ? (
-            <button type="button" className="rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => postAction("seal")}>Seal evidence</button>
-          ) : null}
-          {record.allowed_actions.includes("ARCHIVE") ? (
-            <button type="button" className="rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => postAction("archive")}>Archive</button>
-          ) : null}
-          {record.allowed_actions.includes("TRANSFER") ? (
-            <button
-              type="button"
-              className="rounded-md border border-line px-3 py-2 text-sm"
-              onClick={() => {
-                setTransferReason("");
-                setTransferToUserId("");
-                setTransferOpen(true);
-              }}
-            >
-              Transfer custody
-            </button>
-          ) : null}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="mt-1 text-3xl font-bold text-slate-900 tracking-tight">{record.title}</h2>
+            <div className="mt-4 flex flex-wrap gap-2 text-sm">
+              <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 border border-slate-200">{evidenceTypeLabel(record.evidence_type)}</span>
+              <DocumentClassificationBadge value={record.classification} />
+              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium border ${record.status === 'SEALED' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-green-50 text-green-800 border-green-200'}`}>{evidenceStatusLabel(record.status)}</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {canDownload ? (
+              <button type="button" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm flex items-center gap-2" onClick={() => downloadFile(`/api/evidence/${record.id}/download`, setError)}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Download Master
+              </button>
+            ) : null}
+            {record.allowed_actions.includes("CREATE_ARTIFACT") ? (
+              <button type="button" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors px-4 py-2 text-sm font-medium text-slate-700 shadow-sm" onClick={() => { setSourceArtifactId(null); setArtifactOpen(true); }}>
+                Derive Artifact
+              </button>
+            ) : null}
+            {record.allowed_actions.includes("VERIFY_STATUS") ? (
+              <button type="button" className="rounded-md bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm" onClick={() => postAction("verify")}>Mark Verified</button>
+            ) : null}
+            {record.allowed_actions.includes("SEAL") ? (
+              <button type="button" className="rounded-md bg-amber-600 hover:bg-amber-700 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm" onClick={() => postAction("seal")}>Seal Evidence</button>
+            ) : null}
+            {record.allowed_actions.includes("ARCHIVE") ? (
+              <button type="button" className="rounded-md bg-slate-800 hover:bg-slate-900 transition-colors px-4 py-2 text-sm font-medium text-white shadow-sm" onClick={() => postAction("archive")}>Archive</button>
+            ) : null}
+          </div>
         </div>
       </header>
       {error ? <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">{error}</p> : null}
       {notice ? <p className="rounded-md border border-line bg-white px-4 py-3 text-sm">{notice}</p> : null}
-      <section className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Evidence information</h3>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-          <Info label="Case" value={<Link className="text-navy underline" href={`/cases/${record.case_id}`}>{record.case_number}</Link>} />
-          <Info label="Created by" value={record.created_by_name} />
-          <Info label="Current custodian" value={record.custodian_name || record.created_by_name} />
-          <Info label="Created date" value={formatTimestamp(record.created_at)} />
-          <Info label="File type" value={record.mime_type} />
-          <Info label="File size" value={formatFileSize(record.file_size)} />
-          <Info label="Description" value={record.description || "No description."} />
-        </dl>
-      </section>
-      <section id="integrity" className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Integrity</h3>
-        <p className="mt-3 text-sm text-muted">Hash algorithm</p>
-        <p className="text-sm">{record.hash_algorithm}</p>
-        <p className="mt-3 text-sm text-muted">Original hash</p>
-        <p className="break-all font-mono text-sm">{record.sha256_hash}</p>
-        <p className="mt-3 text-sm">Integrity: {shownIntegrity ?? "Not checked yet"}</p>
-        {integrity ? <p className="mt-2 break-all font-mono text-xs text-muted">Current hash {integrity.current_hash}</p> : null}
-        <button type="button" className="mt-4 rounded-md border border-line px-3 py-2 text-sm" onClick={runIntegrity}>Verify integrity</button>
-      </section>
-      <section className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Chain of custody</h3>
-        {custody.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">No custody events have been recorded.</p>
-        ) : (
-          <ol className="mt-4">
-            {custody.map((event, index) => (
-              <li key={event.id} className="relative pb-6 pl-6 last:pb-0">
-                {index < custody.length - 1 ? <span className="absolute left-[7px] top-3 h-full w-px bg-line" /> : null}
-                <span className="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-navy bg-white" />
-                <p className="text-sm font-medium">{custodyEventLabel(event.event_type)}</p>
-                <p className="text-sm text-muted">{event.performed_by_name}</p>
-                <p className="text-sm text-muted">{formatTimestamp(event.performed_at)}</p>
-                <p className="mt-1 text-sm">{event.description}</p>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
-      <section className="rounded-lg border border-line bg-white p-6">
-        <h3 className="text-base font-semibold">Provenance</h3>
-        <article className="mt-4 rounded-md border border-navy/20 bg-[#eef3f8] p-4">
-          <p className="text-xs font-medium text-navy">ORIGINAL EVIDENCE</p>
-          <p className="mt-1 font-medium">{chain?.title ?? record.title}</p>
-          <p className="mt-1 break-all font-mono text-xs">{record.hash_algorithm}: {record.sha256_hash}</p>
-        </article>
-        {chain && chain.artifacts.length > 0 ? (
-          <div className="mt-2 space-y-2 border-l border-line pl-4">
-            {chain.artifacts.map((node) => (
-              <ProvenanceBranch
-                key={node.id}
-                node={node}
-                evidenceNumber={record.evidence_number}
-                canDownload={canDownloadArtifact}
-                canDerive={record.allowed_actions.includes("CREATE_ARTIFACT")}
-                onDerive={(id) => {
-                  setSourceArtifactId(id);
-                  setArtifactOpen(true);
-                }}
-                onError={setError}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-muted">No derived artifacts have been created.</p>
-        )}
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* LEFT COLUMN: Main Info & Provenance */}
+        <div className="lg:col-span-2 space-y-6">
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Evidence Details</h3>
+            <dl className="grid gap-y-4 gap-x-6 sm:grid-cols-2">
+              <Info label="Description" value={record.description || "No description."} />
+              <div className="sm:col-span-2 pt-2 border-t border-slate-100"></div>
+              <Info label="File Type" value={record.mime_type} />
+              <Info label="File Size" value={formatFileSize(record.file_size)} />
+              <Info label="Case Link" value={<Link className="text-blue-600 hover:underline font-medium" href={`/cases/${record.case_id}`}>{record.case_number}</Link>} />
+              <Info label="Created Date" value={formatTimestamp(record.created_at)} />
+            </dl>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Digital Provenance</h3>
+            <article className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50/50 p-5 shadow-inner">
+              <p className="text-xs font-bold tracking-wider text-indigo-700 uppercase mb-2">Original Root Evidence</p>
+              <p className="font-semibold text-slate-900">{chain?.title ?? record.title}</p>
+              <p className="mt-2 break-all font-mono text-xs text-slate-600 bg-white p-2 rounded border border-indigo-100/50">
+                <span className="text-indigo-400 select-none mr-2">{record.hash_algorithm}:</span>{record.sha256_hash}
+              </p>
+            </article>
+            {chain && chain.artifacts.length > 0 ? (
+              <div className="mt-4 space-y-3 border-l-2 border-indigo-100 pl-5 ml-2">
+                {chain.artifacts.map((node) => (
+                  <ProvenanceBranch
+                    key={node.id}
+                    node={node}
+                    evidenceNumber={record.evidence_number}
+                    canDownload={canDownloadArtifact}
+                    canDerive={record.allowed_actions.includes("CREATE_ARTIFACT")}
+                    onDerive={(id) => {
+                      setSourceArtifactId(id);
+                      setArtifactOpen(true);
+                    }}
+                    onError={setError}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 text-sm text-slate-500 italic">No derived artifacts have been created from this root evidence yet.</p>
+            )}
+          </section>
+        </div>
+
+        {/* RIGHT COLUMN: Chain of Custody & Integrity */}
+        <div className="lg:col-span-1 space-y-6">
+          <section className="rounded-xl border-2 border-slate-800 bg-slate-900 p-6 shadow-md text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <svg className="w-24 h-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            </div>
+            <div className="relative z-10">
+              <h3 className="text-sm font-semibold tracking-wider text-slate-400 uppercase mb-4">Current Custody</h3>
+              <p className="text-xl font-bold text-white">{record.custodian_name || "Case Vault"}</p>
+              <p className="text-sm text-slate-400 mt-1">Logged by: {record.created_by_name}</p>
+              
+              {record.allowed_actions.includes("TRANSFER") ? (
+                <button
+                  type="button"
+                  className="mt-6 w-full rounded-md bg-white hover:bg-slate-100 transition-colors px-4 py-2.5 text-sm font-bold text-slate-900 shadow-sm flex items-center justify-center gap-2"
+                  onClick={() => {
+                    setTransferReason("");
+                    setTransferToUserId("");
+                    setTransferOpen(true);
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                  Transfer Custody
+                </button>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-4">Cryptographic Hash</h3>
+            <p className="text-xs font-medium text-slate-500 mb-1">{record.hash_algorithm}</p>
+            <div className="bg-slate-50 border border-slate-200 rounded p-2.5 overflow-hidden mb-4">
+               <p className="break-all font-mono text-xs text-slate-700">{record.sha256_hash}</p>
+            </div>
+            
+            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+              <div>
+                <p className="text-xs text-slate-500 mb-0.5">Integrity Check</p>
+                <div className="flex items-center gap-2">
+                  {shownIntegrity === 'VERIFIED' ? (
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+                  ) : shownIntegrity === 'FAILED' ? (
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                  ) : (
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-slate-300"></span>
+                  )}
+                  <p className="text-sm font-medium text-slate-900">{shownIntegrity ?? "Pending"}</p>
+                </div>
+              </div>
+              <button type="button" className="rounded-md border border-slate-300 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm" onClick={runIntegrity}>Verify Now</button>
+            </div>
+            {integrity ? <p className="mt-3 break-all font-mono text-[10px] text-slate-400 bg-slate-50 p-2 rounded">Checked hash: {integrity.current_hash}</p> : null}
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-5">Custody Timeline</h3>
+            {custody.length === 0 ? (
+              <p className="text-sm text-slate-500 italic">No custody events have been recorded.</p>
+            ) : (
+              <div className="flow-root">
+                <ul role="list" className="-mb-8">
+                  {custody.map((event, index) => (
+                    <li key={event.id}>
+                      <div className="relative pb-8">
+                        {index !== custody.length - 1 ? (
+                          <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-slate-200" aria-hidden="true" />
+                        ) : null}
+                        <div className="relative flex space-x-3">
+                          <div>
+                            <span className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center ring-8 ring-white text-slate-500">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </span>
+                          </div>
+                          <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                            <div>
+                              <p className="text-sm text-slate-900 font-medium">{custodyEventLabel(event.event_type)}</p>
+                              <p className="text-xs text-slate-500 mt-1">{event.performed_by_name}</p>
+                              <p className="mt-2 text-sm text-slate-700 bg-slate-50 rounded p-2 border border-slate-100">{event.description}</p>
+                            </div>
+                            <div className="whitespace-nowrap text-right text-xs text-slate-500">
+                              <time>{formatTimestamp(event.performed_at).split(' ')[0]}</time>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
       {artifactOpen ? (
         <ArtifactDialog
           evidenceId={record.id}
@@ -452,8 +517,8 @@ function ArtifactDialog({
 function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-muted">{label}</dt>
-      <dd className="mt-1">{value}</dd>
+      <dt className="text-xs text-slate-500">{label}</dt>
+      <dd className="mt-0.5 text-sm font-medium text-slate-900 truncate">{value}</dd>
     </div>
   );
 }
