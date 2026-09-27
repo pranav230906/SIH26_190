@@ -7,7 +7,6 @@ const PLACEHOLDERS = [
   { title: "Requests", note: "Access requests for this case are available below." },
   { title: "Revisions", note: "Module coming next" },
   { title: "AI Assistant", note: "Module coming next" },
-  { title: "Court packages", note: "Module coming next" },
   { title: "Audit", note: "Case activity from the audit log is listed on this page." },
 ];
 
@@ -20,6 +19,7 @@ export function CaseModules({ caseId }: { caseId: string }) {
     can(permissions, "ACCESS_REQUEST.CREATE");
   const evidenceEnabled = can(permissions, "EVIDENCE.READ") || can(permissions, "EVIDENCE.UPLOAD");
   const forensicsEnabled = can(permissions, "FORENSIC_REPORT.READ") || can(permissions, "FORENSIC_REPORT.CREATE");
+  const courtPackagesEnabled = can(permissions, "COURT_PACKAGE.READ") || can(permissions, "COURT_PACKAGE.CREATE");
 
   return (
     <section aria-labelledby="case-modules">
@@ -55,6 +55,16 @@ export function CaseModules({ caseId }: { caseId: string }) {
             </Link>
           ) : (
             <p className="mt-2 text-sm text-muted">Forensic requests are not available for this role.</p>
+          )}
+        </li>
+        <li className="rounded-lg border border-line bg-white p-4">
+          <p className="text-sm font-medium">Court packages</p>
+          {courtPackagesEnabled ? (
+            <Link href={`/court-packages?case_id=${caseId}`} className="mt-3 inline-flex text-sm font-medium text-navy underline">
+              Open court packages
+            </Link>
+          ) : (
+            <p className="mt-2 text-sm text-muted">Court packages are not available for this role.</p>
           )}
         </li>
         {PLACEHOLDERS.map((item) => (

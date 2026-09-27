@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { can, usePermissions } from "@/components/session-context";
 import { ApiClientError, apiFetch } from "@/lib/api";
 
@@ -34,12 +35,14 @@ type CaseOption = { id: string; case_number: string; title: string };
 type RecordOption = { id: string; label: string };
 
 export function CourtPackagesView() {
+  const searchParams = useSearchParams();
+  const caseIdParam = searchParams.get("case_id") || "";
   const { permissions } = usePermissions();
   const canCreate = can(permissions, "COURT_PACKAGE.CREATE");
   const canVerify = can(permissions, "COURT_PACKAGE.VERIFY");
   const [packages, setPackages] = useState<CourtPackage[]>([]);
   const [cases, setCases] = useState<CaseOption[]>([]);
-  const [caseId, setCaseId] = useState("");
+  const [caseId, setCaseId] = useState(caseIdParam);
   const [title, setTitle] = useState("");
   const [documents, setDocuments] = useState<RecordOption[]>([]);
   const [evidence, setEvidence] = useState<RecordOption[]>([]);
@@ -47,6 +50,12 @@ export function CourtPackagesView() {
   const [selectedEvidence, setSelectedEvidence] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (caseIdParam) {
+      setCaseId(caseIdParam);
+    }
+  }, [caseIdParam]);
 
   async function refresh() {
     const response = await apiFetch<{ items: CourtPackage[] }>("/api/court-packages");

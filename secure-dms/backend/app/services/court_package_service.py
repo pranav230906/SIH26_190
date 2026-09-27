@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.authorization.permission_service import authorize, enforce, user_has_case_access
-from app.constants import Action, ResourceType
+from app.constants import Action, CaseEventType, CaseStatus, ResourceType
 from app.core.approval_seal import approval_seal
 from app.core.exceptions import AppError
 from app.core.file_crypto import read_plaintext
@@ -20,7 +20,10 @@ from app.models.evidence import DerivedArtifact, Evidence
 from app.models.forensic import ChainOfCustodyEvent
 from app.models.user import User
 from app.schemas.court_package import CourtPackageCreate, CourtPackageItemRead, CourtPackageRead, CourtPackageVerification
+from app.services.audit_service import record as record_audit
+from app.services.case_lifecycle import status_label
 from app.services.case_service import require_case
+from app.services.case_timeline import add_event
 from app.services.storage_service import get_storage
 
 def list_packages(db: Session, user: User) -> list[CourtPackageRead]:
@@ -103,6 +106,35 @@ def submit_package(db: Session, user: User, package_id: uuid.UUID) -> CourtPacka
     package.sealed_at = now if value is not None else None
     package.submitted_at = now
     package.status = "SUBMITTED"
+
+    if package.case and package.case.status == CaseStatus.READY_FOR_PROSECUTION.value:
+        previous_status = package.case.status
+        package.case.status = CaseStatus.IN_COURT.value
+        package.case.updated_at = now
+        add_event(
+            db,
+            case_id=package.case.id,
+            event_type=CaseEventType.STATUS_CHANGED,
+            message=f"Status changed from {status_label(previous_status)} to {status_label(CaseStatus.IN_COURT.value)} via court package submission ({package.package_number}).",
+            actor_id=user.id,
+        )
+        record_audit(
+            "CASE_STATUS_CHANGED",
+            user_id=user.id,
+            case_id=package.case.id,
+            metadata={
+                "previous_status": previous_status,
+                "new_status": CaseStatus.IN_COURT.value,
+                "package_number": package.package_number,
+            },
+        )
+
+    record_audit(
+        "COURT_PACKAGE_SUBMITTED",
+        user_id=user.id,
+        case_id=package.case_id,
+        metadata={"package_number": package.package_number, "sealed": value is not None},
+    )
     db.commit()
     return _read(_load(db, package.id))
 

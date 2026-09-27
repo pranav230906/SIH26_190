@@ -139,6 +139,11 @@ def update_case(db: Session, user: User, case_key: str, payload: CaseUpdate) -> 
     if case is None or not user_has_case_access(user, case):
         raise AppError(404, "not_found", "Case not found.")
     enforce(authorize(user, Action.UPDATE, ResourceType.CASE, case=case), hide_case=True)
+    if user.role and user.role.name == RoleName.PROSECUTOR.value:
+        if payload.department_id is not None or payload.classification is not None:
+            raise AppError(403, "forbidden", "Prosecutors cannot change case department or classification.")
+        if payload.status is not None and (case.status != CaseStatus.READY_FOR_PROSECUTION.value or payload.status != CaseStatus.IN_COURT):
+            raise AppError(403, "forbidden", "Prosecutors can only transition cases from Ready for prosecution to In court.")
     if payload.title is not None:
         case.title = payload.title.strip()
     if payload.description is not None:
@@ -200,7 +205,7 @@ def _filters(
     filters = []
     sees_every_case = role_has_system_case_access(user.role.name) and "CASE.READ" in effective_permission_codes(user)
     if not sees_every_case:
-        filters.append(_visible_to(user.id))
+        filters.append(_visible_to(user))
     if status is not None:
         filters.append(Case.status == status.value)
     if case_type is not None:
@@ -214,19 +219,23 @@ def _filters(
     return filters
 
 
-def _visible_to(user_id: uuid.UUID):
+def _visible_to(user: User):
     now = datetime.now(timezone.utc)
     assigned = exists().where(
         CaseAssignment.case_id == Case.id,
-        CaseAssignment.user_id == user_id,
+        CaseAssignment.user_id == user.id,
         CaseAssignment.active.is_(True),
     )
     granted = exists().where(
         AccessRequest.case_id == Case.id,
-        AccessRequest.requester_id == user_id,
+        AccessRequest.requester_id == user.id,
         AccessRequest.status == RequestStatus.APPROVED.value,
         or_(AccessRequest.expires_at.is_(None), AccessRequest.expires_at > now),
     )
+    role_name = user.role.name if user.role is not None else None
+    if role_name == RoleName.PROSECUTOR.value:
+        prosecution_cases = Case.status.in_((CaseStatus.READY_FOR_PROSECUTION.value, CaseStatus.IN_COURT.value))
+        return or_(assigned, granted, prosecution_cases)
     return or_(assigned, granted)
 
 

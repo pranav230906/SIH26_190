@@ -4,9 +4,9 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import UploadFile
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, object_session
 
 from app.authorization.permission_service import (
     authorize,
@@ -19,6 +19,7 @@ from app.constants import (
     Action,
     ArtifactStatus,
     ArtifactType,
+    CaseStatus,
     CustodyEventType,
     DocumentClassification,
     EvidenceStatus,
@@ -32,6 +33,7 @@ from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.models.access_request import AccessRequest
 from app.models.case import Case
+from app.models.case_assignment import CaseAssignment
 from app.models.evidence import DerivedArtifact, Evidence, EvidenceIntegrityEvent
 from app.models.user import User
 from app.schemas.evidence import (
@@ -727,12 +729,46 @@ def _artifact_visible(user: User, artifact: DerivedArtifact) -> bool:
     return True
 
 
+def _can_prosecutor_read_evidence(user: User, resource, resource_type: ResourceType) -> bool:
+    if _grant_allows_read(user, resource, resource_type):
+        return True
+    custodian_id = getattr(resource, "custodian_user_id", None)
+    if custodian_id is None and hasattr(resource, "source_evidence"):
+        custodian_id = getattr(getattr(resource, "source_evidence", None), "custodian_user_id", None)
+    if custodian_id is not None and custodian_id == user.id:
+        return True
+    if getattr(resource, "classification", None) in ELEVATED_DOCUMENT_CLASSIFICATIONS:
+        return False
+    case = getattr(resource, "case", None)
+    case_status = getattr(case, "status", None)
+    if case_status in {CaseStatus.READY_FOR_PROSECUTION.value, CaseStatus.IN_COURT.value}:
+        return True
+    case_id = getattr(resource, "case_id", None)
+    if case_id is not None:
+        db = object_session(user) or object_session(resource)
+        if db is not None:
+            if case_status is None:
+                loaded_status = db.scalar(select(Case.status).where(Case.id == case_id))
+                if loaded_status in {CaseStatus.READY_FOR_PROSECUTION.value, CaseStatus.IN_COURT.value}:
+                    return True
+            assigned = db.scalar(
+                select(CaseAssignment.id).where(
+                    CaseAssignment.case_id == case_id,
+                    CaseAssignment.user_id == user.id,
+                    CaseAssignment.active.is_(True),
+                )
+            )
+            if assigned is not None:
+                return True
+    return False
+
+
 def _can_read_classification(user: User, resource, resource_type: ResourceType) -> bool:
     role_name = user.role.name if user.role is not None else None
     if role_name in {RoleName.FORENSIC_EXAMINER.value, RoleName.FORENSIC_REVIEWER.value}:
         return user_has_forensic_evidence_access(user, resource, Action.READ)
     if role_name == RoleName.PROSECUTOR.value:
-        return _grant_allows_read(user, resource, resource_type)
+        return _can_prosecutor_read_evidence(user, resource, resource_type)
     if role_name == RoleName.JUDICIAL_USER.value:
         return _grant_allows_read(user, resource, resource_type) or _package_allows(resource)
     if getattr(resource, "classification", None) not in ELEVATED_DOCUMENT_CLASSIFICATIONS:
@@ -783,7 +819,22 @@ def _readable_clause(user: User, classification_column, id_column, resource_type
     if role_name in {RoleName.FORENSIC_EXAMINER.value, RoleName.FORENSIC_REVIEWER.value}:
         return _forensic_clause(user, id_column, resource_type)
     if role_name == RoleName.PROSECUTOR.value:
-        return granted
+        assigned_to_case = exists().where(
+            CaseAssignment.case_id == Evidence.case_id,
+            CaseAssignment.user_id == user.id,
+            CaseAssignment.active.is_(True),
+        )
+        case_in_prosecution = exists().where(
+            Case.id == Evidence.case_id,
+            Case.status.in_((CaseStatus.READY_FOR_PROSECUTION.value, CaseStatus.IN_COURT.value)),
+        )
+        non_elevated = classification_column.notin_(tuple(ELEVATED_DOCUMENT_CLASSIFICATIONS))
+        custodian_match = (Evidence.custodian_user_id == user.id)
+        return or_(
+            granted,
+            custodian_match,
+            and_(non_elevated, or_(case_in_prosecution, assigned_to_case)),
+        )
     if role_name == RoleName.JUDICIAL_USER.value:
         return or_(granted, _package_clause(id_column, resource_type))
     return or_(classification_column.notin_(tuple(ELEVATED_DOCUMENT_CLASSIFICATIONS)), granted)

@@ -7,6 +7,7 @@ from fastapi import UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.authorization.ownership import approver_roles_for_institution, institution_code_for_type, role_institution_code
 from app.authorization.permission_service import authorize, enforce
 from app.authorization.policies import DOCUMENT_VERSION_TRANSITIONS
 from app.constants import (
@@ -74,8 +75,6 @@ def create_revision(db: Session, user: User, document_id: uuid.UUID, upload: Upl
     if document.status in _LOCKED:
         raise AppError(403, "forbidden", "You are not authorized to perform this action.")
     enforce(authorize(user, Action.CREATE, ResourceType.REVISION, case=document.case))
-    from app.authorization.ownership import institution_code_for_type, role_institution_code
-
     role_name = user.role.name if user.role is not None else None
     if role_institution_code(role_name) != institution_code_for_type(document.document_type):
         raise AppError(403, "forbidden", "You are not authorized to perform this action.")
@@ -216,6 +215,10 @@ def version_integrity(db: Session, user: User, version_id: uuid.UUID) -> Version
 def submit_version(db: Session, user: User, version_id: uuid.UUID) -> VersionDetail:
     version = _require(db, user, version_id, lock=True)
     _ensure(version, DocumentVersionStatus.SUBMITTED_FOR_REVIEW)
+    owner = institution_code_for_type(version.document.document_type)
+    role_name = user.role.name if user.role is not None else None
+    if role_institution_code(role_name) != owner:
+        raise AppError(403, "forbidden", "You are not authorized to perform this action.")
     enforce(authorize(user, Action.UPDATE, ResourceType.REVISION, resource=version, case=version.document.case))
     if version.version_number > 1 and version.parent_version_id is None:
         raise AppError(422, "validation_error", "A revision must reference its parent version.")
@@ -251,6 +254,10 @@ def submit_version(db: Session, user: User, version_id: uuid.UUID) -> VersionDet
 
 def review_version(db: Session, user: User, version_id: uuid.UUID, decision: VersionReviewDecision, comment: str | None) -> VersionDetail:
     version = _require(db, user, version_id, lock=True)
+    owner = institution_code_for_type(version.document.document_type)
+    role_name = user.role.name if user.role is not None else None
+    if role_name not in approver_roles_for_institution(owner):
+        raise AppError(403, "forbidden", "You are not authorized to perform this action.")
     if decision == VersionReviewDecision.APPROVE and version.created_by == user.id:
         _audit(
             "UNAUTHORIZED_ACCESS_ATTEMPT",

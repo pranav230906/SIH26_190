@@ -11,6 +11,8 @@ from app.authorization.permissions import permission_code
 from app.authorization.ownership import (
     COURT,
     POLICE,
+    PROSECUTION,
+    approver_roles_for_institution,
     institution_code_for_type,
     role_institution_code,
 )
@@ -116,6 +118,12 @@ def user_has_case_access(user, case) -> bool:
     if role_name == RoleName.POLICE_SUPERVISOR.value and getattr(user, "department_id", None) is not None:
         if getattr(case, "department_id", None) == user.department_id:
             return True
+
+    if role_name == RoleName.PROSECUTOR.value and getattr(case, "status", None) in {
+        CaseStatus.READY_FOR_PROSECUTION.value,
+        CaseStatus.IN_COURT.value,
+    }:
+        return True
 
     assignments = getattr(case, "assignments", None) or []
     if any(item.user_id == user.id and item.active for item in assignments):
@@ -231,8 +239,18 @@ def _document_policy(user, action: Action, document, role_name: str) -> Authoriz
     status = getattr(document, "status", None)
     if status in IMMUTABLE_DOCUMENT_STATUSES and action in {Action.UPDATE, Action.UPLOAD, Action.DELETE}:
         return _deny(DecisionReason.ACTION_NOT_ALLOWED)
-    if action == Action.DELETE and status != DocumentStatus.DRAFT.value:
-        return _deny(DecisionReason.ACTION_NOT_ALLOWED)
+    if action == Action.DELETE:
+        if status != DocumentStatus.DRAFT.value:
+            return _deny(DecisionReason.ACTION_NOT_ALLOWED)
+        owner = institution_code_for_type(getattr(document, "document_type", None))
+        actor = role_institution_code(role_name)
+        owns_draft = (
+            getattr(document, "created_by", None) == getattr(user, "id", None)
+            and owner is not None
+            and actor == owner
+        )
+        if not owns_draft:
+            return _deny(DecisionReason.ACTION_NOT_ALLOWED)
 
     owner = institution_code_for_type(getattr(document, "document_type", None))
     actor = role_institution_code(role_name)
@@ -240,18 +258,27 @@ def _document_policy(user, action: Action, document, role_name: str) -> Authoriz
         return _deny(DecisionReason.ACTION_NOT_ALLOWED)
     if action == Action.UPDATE:
         owns_draft = (
-            role_name == RoleName.POLICE_OFFICER.value
+            status == DocumentStatus.DRAFT.value
             and getattr(document, "created_by", None) == getattr(user, "id", None)
-            and status == DocumentStatus.DRAFT.value
-            and owner == POLICE
+            and owner is not None
+            and actor == owner
         )
         if not owns_draft:
+            return _deny(DecisionReason.ACTION_NOT_ALLOWED)
+
+    if action in {Action.APPROVE, Action.REVIEW}:
+        approvers = approver_roles_for_institution(owner)
+        if role_name not in approvers:
+            return _deny(DecisionReason.ACTION_NOT_ALLOWED)
+        if is_self_review(user, document):
             return _deny(DecisionReason.ACTION_NOT_ALLOWED)
 
     classification = getattr(document, "classification", None)
     gated = {Action.READ, Action.DOWNLOAD, Action.UPDATE, Action.UPLOAD, Action.EXPORT, Action.CREATE}
     if classification in ELEVATED_DOCUMENT_CLASSIFICATIONS and action in gated:
         if role_name == RoleName.POLICE_SUPERVISOR.value and owner == POLICE:
+            return None
+        if role_name == RoleName.PROSECUTOR.value and owner == PROSECUTION:
             return None
         if _has_document_grant(user, document, action):
             return None
@@ -281,6 +308,42 @@ def _has_document_grant(user, document, action: Action) -> bool:
     return grant is not None
 
 
+def _user_has_prosecutor_evidence_access(user, resource, action: Action, resource_type: ResourceType) -> bool:
+    if _has_resource_grant(user, resource, action, resource_type):
+        return True
+    custodian_id = getattr(resource, "custodian_user_id", None)
+    if custodian_id is None and hasattr(resource, "source_evidence"):
+        custodian_id = getattr(getattr(resource, "source_evidence", None), "custodian_user_id", None)
+    if custodian_id is not None and custodian_id == getattr(user, "id", None):
+        return True
+    classification = getattr(resource, "classification", None)
+    if classification in ELEVATED_DOCUMENT_CLASSIFICATIONS:
+        return False
+    case = getattr(resource, "case", None)
+    case_status = getattr(case, "status", None)
+    if case_status in {CaseStatus.READY_FOR_PROSECUTION.value, CaseStatus.IN_COURT.value}:
+        return True
+    case_id = getattr(resource, "case_id", None)
+    if case_id is not None:
+        db = object_session(user) or object_session(resource)
+        if db is not None:
+            if case_status is None:
+                from app.models.case import Case
+                loaded_status = db.scalar(select(Case.status).where(Case.id == case_id))
+                if loaded_status in {CaseStatus.READY_FOR_PROSECUTION.value, CaseStatus.IN_COURT.value}:
+                    return True
+            assigned = db.scalar(
+                select(CaseAssignment.id).where(
+                    CaseAssignment.case_id == case_id,
+                    CaseAssignment.user_id == getattr(user, "id", None),
+                    CaseAssignment.active.is_(True),
+                )
+            )
+            if assigned is not None:
+                return True
+    return False
+
+
 def _custody_policy(user, action: Action, resource, role_name: str, resource_type: ResourceType) -> AuthorizationDecision | None:
     """Original evidence and derived artifacts stay immutable after they are stored."""
     if action in {Action.UPDATE, Action.DELETE}:
@@ -294,7 +357,7 @@ def _custody_policy(user, action: Action, resource, role_name: str, resource_typ
             return None
         return _deny(DecisionReason.RESOURCE_ACCESS_DENIED)
     if role_name == RoleName.PROSECUTOR.value and action in limited:
-        if _has_resource_grant(user, resource, action, resource_type):
+        if _user_has_prosecutor_evidence_access(user, resource, action, resource_type):
             return None
         return _deny(DecisionReason.RESOURCE_ACCESS_DENIED)
     if role_name == RoleName.JUDICIAL_USER.value and action in limited:
@@ -306,6 +369,8 @@ def _custody_policy(user, action: Action, resource, role_name: str, resource_typ
     gated = {Action.READ, Action.DOWNLOAD, Action.UPLOAD, Action.EXPORT, Action.CREATE, Action.VERIFY, Action.APPROVE}
     if classification in ELEVATED_DOCUMENT_CLASSIFICATIONS and action in gated:
         if role_name == RoleName.POLICE_SUPERVISOR.value:
+            return None
+        if role_name == RoleName.PROSECUTOR.value and _user_has_prosecutor_evidence_access(user, resource, action, resource_type):
             return None
         if _has_resource_grant(user, resource, action, resource_type):
             return None
