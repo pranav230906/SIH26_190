@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     rag_min_score: float = Field(default=0.55, alias="RAG_MIN_SCORE")
     rag_rate_limit: int = Field(default=20, alias="RAG_RATE_LIMIT")
     rag_rate_window_seconds: int = Field(default=60, alias="RAG_RATE_WINDOW_SECONDS")
+    app_database_url: str = Field(default="", alias="APP_DATABASE_URL")
+    storage_master_key: str = Field(default="", alias="STORAGE_MASTER_KEY")
+    approval_signing_key: str = Field(default="", alias="APPROVAL_SIGNING_KEY")
 
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_DIR / ".env"),

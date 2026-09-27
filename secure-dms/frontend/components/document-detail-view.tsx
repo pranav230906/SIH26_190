@@ -14,7 +14,7 @@ import {
   formatFileSize,
   formatTimestamp,
 } from "@/lib/format";
-import type { DocumentDetail, OcrStatus, PageText } from "@/lib/types";
+import type { DirectoryUser, DocumentDetail, OcrStatus, PageText } from "@/lib/types";
 
 const CLASSIFICATIONS = ["INTERNAL", "CONFIDENTIAL", "HIGHLY_CONFIDENTIAL", "RESTRICTED"];
 const STATUS_ACTION: Record<string, string> = {
@@ -36,6 +36,11 @@ export function DocumentDetailView() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewNote, setPreviewNote] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferToUserId, setTransferToUserId] = useState("");
+  const [transferReason, setTransferReason] = useState("");
+  const [directoryUsers, setDirectoryUsers] = useState<DirectoryUser[]>([]);
+  const [transferBusy, setTransferBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [ocr, setOcr] = useState<OcrStatus | null>(null);
   const [pageText, setPageText] = useState<PageText | null>(null);
@@ -44,6 +49,14 @@ export function DocumentDetailView() {
   const canDownload = can(permissions, "DOCUMENT.DOWNLOAD");
   const canUpdate = can(permissions, "DOCUMENT.UPDATE");
   const canRequest = can(permissions, "ACCESS_REQUEST.CREATE");
+
+  useEffect(() => {
+    if (transferOpen && directoryUsers.length === 0) {
+      apiFetch<{ items: DirectoryUser[] }>("/api/users/directory")
+        .then((res) => setDirectoryUsers(res.items))
+        .catch(() => {});
+    }
+  }, [transferOpen, directoryUsers.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -195,6 +208,28 @@ export function DocumentDetailView() {
     }
   }
 
+  async function submitTransfer(event: React.FormEvent) {
+    event.preventDefault();
+    if (!transferToUserId) return;
+    setTransferBusy(true);
+    try {
+      const updated = await apiFetch<DocumentDetail>(`/api/documents/${params.documentId}/transfer-custody`, {
+        method: "POST",
+        body: JSON.stringify({
+          to_user_id: transferToUserId,
+          reason: transferReason,
+        }),
+      });
+      setRecord(updated);
+      setTransferOpen(false);
+      setNotice("Document custody transferred successfully.");
+    } catch (caught) {
+      setError(caught instanceof ApiClientError ? caught.message : "Custody transfer failed.");
+    } finally {
+      setTransferBusy(false);
+    }
+  }
+
   if (missing) {
     return <p className="text-sm text-muted">Document not found.</p>;
   }
@@ -232,6 +267,19 @@ export function DocumentDetailView() {
               {STATUS_ACTION[target] ?? documentStatusLabel(target)}
             </button>
           ))}
+          {record.allowed_actions?.includes("TRANSFER") ? (
+            <button
+              type="button"
+              className="rounded-md border border-line px-3 py-2 text-sm"
+              onClick={() => {
+                setTransferReason("");
+                setTransferToUserId("");
+                setTransferOpen(true);
+              }}
+            >
+              Transfer custody
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -243,7 +291,9 @@ export function DocumentDetailView() {
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <Info label="Document type" value={<DocumentTypeBadge value={record.document_type} />} />
           <Info label="Case" value={<Link className="text-navy underline" href={`/cases/${record.case_id}`}>{record.case_number}</Link>} />
+          <Info label="Owner department" value={record.owner_department_name || record.owner_department_code || "Police Department"} />
           <Info label="Created by" value={record.created_by_name} />
+          <Info label="Current custodian" value={record.custodian_name || record.created_by_name} />
           <Info label="Created date" value={formatTimestamp(record.created_at)} />
           <Info label="Updated date" value={formatTimestamp(record.updated_at)} />
           <Info label="File type" value={record.mime_type} />
@@ -359,6 +409,64 @@ export function DocumentDetailView() {
           }}
           onError={setError}
         />
+      ) : null}
+
+      {transferOpen ? (
+        <div className="fixed inset-0 z-20 flex items-start justify-center bg-navy/40 p-4">
+          <form onSubmit={submitTransfer} className="mt-16 w-[min(100%,32rem)] space-y-4 rounded-lg border border-line bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-navy">Transfer Document Custody</h3>
+            <p className="text-xs text-muted">
+              Transfer custody of this document to another department officer or judicial official.
+            </p>
+            <label className="block text-sm">
+              <span className="font-medium text-navy">New Custodian</span>
+              <select
+                required
+                value={transferToUserId}
+                onChange={(e) => setTransferToUserId(e.target.value)}
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+              >
+                <option value="">Select recipient...</option>
+                {directoryUsers
+                  .filter((u) => u.id !== record.custodian_user_id)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name} ({u.username}) · {u.role_name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="font-medium text-navy">Reason for Transfer</span>
+              <textarea
+                required
+                minLength={5}
+                value={transferReason}
+                onChange={(e) => setTransferReason(e.target.value)}
+                placeholder="e.g. Forwarding report to prosecutor for review"
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                rows={3}
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                className="rounded-md border border-line px-3 py-2 text-sm hover:bg-line/20"
+                onClick={() => setTransferOpen(false)}
+                disabled={transferBusy}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={transferBusy || !transferToUserId}
+                className="rounded-md bg-navy px-3 py-2 text-sm text-white hover:bg-navy/90 disabled:opacity-50"
+              >
+                {transferBusy ? "Transferring..." : "Confirm Transfer"}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
     </div>
   );

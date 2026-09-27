@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 from sqlalchemy.orm import Session
 
 from app.constants import ArtifactType, DocumentClassification, EvidenceStatus, EvidenceType
@@ -15,6 +16,7 @@ from app.schemas.evidence import (
     ArtifactSummary,
     EvidenceDetail,
     EvidenceListResponse,
+    EvidenceTransfer,
     IntegrityResult,
     ProvenanceResponse,
 )
@@ -33,6 +35,7 @@ from app.services.evidence_service import (
     open_evidence_download,
     provenance,
     seal_evidence,
+    transfer_evidence,
     upload_evidence,
     verify_status,
 )
@@ -142,8 +145,8 @@ def download_evidence(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ) -> FileResponse:
-    evidence, path = open_evidence_download(db, current_user, evidence_id)
-    return _file_response(evidence.original_filename, evidence.mime_type, path)
+    evidence, path, temporary = open_evidence_download(db, current_user, evidence_id)
+    return _file_response(evidence.original_filename, evidence.mime_type, path, temporary)
 
 
 @router.get("/evidence/{evidence_id}/provenance", response_model=ProvenanceResponse, responses=_ERRORS)
@@ -180,6 +183,16 @@ def mark_evidence_archived(
     current_user: User = Depends(require_authenticated_user),
 ) -> EvidenceDetail:
     return archive_evidence(db, current_user, evidence_id)
+
+
+@router.post("/evidence/{evidence_id}/transfer", response_model=EvidenceDetail, responses=_ERRORS)
+def transfer_custody(
+    evidence_id: uuid.UUID,
+    payload: EvidenceTransfer,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+) -> EvidenceDetail:
+    return transfer_evidence(db, current_user, evidence_id, payload)
 
 
 @router.post(
@@ -236,8 +249,8 @@ def download_artifact(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ) -> FileResponse:
-    artifact, path = open_artifact_download(db, current_user, artifact_id)
-    return _file_response(artifact.original_filename, artifact.mime_type, path)
+    artifact, path, temporary = open_artifact_download(db, current_user, artifact_id)
+    return _file_response(artifact.original_filename, artifact.mime_type, path, temporary)
 
 
 @router.post(
@@ -268,6 +281,13 @@ def add_artifact_from_artifact(
     )
 
 
-def _file_response(original_name: str, mime_type: str, path: str) -> FileResponse:
+def _file_response(original_name: str, mime_type: str, path: str, temporary: bool = False) -> FileResponse:
     safe_name = Path(original_name).name.replace('"', "")
-    return FileResponse(path, media_type=mime_type, filename=safe_name, content_disposition_type="attachment")
+    background = BackgroundTask(Path(path).unlink, missing_ok=True) if temporary else None
+    return FileResponse(
+        path,
+        media_type=mime_type,
+        filename=safe_name,
+        content_disposition_type="attachment",
+        background=background,
+    )

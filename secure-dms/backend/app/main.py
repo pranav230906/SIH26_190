@@ -10,10 +10,25 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.routes import access_requests, audit, auth, cases, departments, documents, evidence, forensics, rag, revisions, search, users
+from app.api.routes import (
+    access_requests,
+    audit,
+    auth,
+    cases,
+    court_packages,
+    departments,
+    documents,
+    evidence,
+    forensics,
+    rag,
+    revisions,
+    roles,
+    search,
+    users,
+)
 from app.core.request_context import reset_request_context, set_request_context
 from app.core.config import get_settings
-from app.core.database import engine
+from app.core.database import app_engine, engine
 from app.core.exceptions import AppError
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
@@ -38,8 +53,17 @@ _STATUS_CODES = {
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings = get_settings()
+    if not settings.app_database_url.strip():
+        raise RuntimeError(
+            "APP_DATABASE_URL is required. The API does not query case content as the table owner."
+        )
     settings.storage_path.mkdir(parents=True, exist_ok=True)
     with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+    application = app_engine()
+    if application is None:
+        raise RuntimeError("APP_DATABASE_URL is required.")
+    with application.connect() as connection:
         connection.execute(text("SELECT 1"))
     logger.info("Database connection verified")
     yield
@@ -81,6 +105,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router, prefix="/api")
     app.include_router(users.router, prefix="/api")
+    app.include_router(roles.router, prefix="/api")
     app.include_router(departments.router, prefix="/api")
     app.include_router(cases.router, prefix="/api")
     app.include_router(documents.router, prefix="/api")
@@ -90,6 +115,7 @@ def create_app() -> FastAPI:
     app.include_router(search.router, prefix="/api")
     app.include_router(rag.router, prefix="/api")
     app.include_router(access_requests.router, prefix="/api")
+    app.include_router(court_packages.router, prefix="/api")
     app.include_router(audit.router, prefix="/api")
 
     @app.get("/api/health", tags=["Health"])

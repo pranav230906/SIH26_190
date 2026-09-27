@@ -6,6 +6,7 @@ from app.models.audit_event import AuditEvent
 from app.models.case import Case
 from app.models.case_assignment import CaseAssignment
 from app.models.case_event import CaseEvent
+from app.models.court_package import CourtPackage, CourtPackageItem
 from app.models.department import Department
 from app.models.document import Document
 from app.models.document_version import DocumentVersion
@@ -33,6 +34,8 @@ __all__ = [
     "ChainOfCustodyEvent",
     "CaseAssignment",
     "CaseEvent",
+    "CourtPackage",
+    "CourtPackageItem",
     "Department",
     "DocumentIndexStatus",
     "DocumentText",

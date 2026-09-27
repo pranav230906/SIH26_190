@@ -34,6 +34,7 @@ class AccessRequest(Base):
     requested_action: Mapped[str] = mapped_column(String(64), nullable=False)
     resource_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     justification: Mapped[str] = mapped_column(Text, nullable=False)
+    access_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="STANDARD", server_default="STANDARD")
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),

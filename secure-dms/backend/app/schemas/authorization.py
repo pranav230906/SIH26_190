@@ -44,6 +44,15 @@ class AccessRequestCreate(BaseModel):
     requested_action: Action
     justification: str = Field(min_length=10, max_length=4000)
     resource_id: uuid.UUID | None = None
+    emergency: bool = False
+
+
+class CaseAccessRequestCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    case_number: str = Field(min_length=3, max_length=64)
+    justification: str = Field(min_length=10, max_length=4000)
+    emergency: bool = False
 
 
 class AccessRequestReview(BaseModel):
@@ -68,6 +77,7 @@ class AccessRequestRead(BaseModel):
     review_note: str | None
     expires_at: datetime | None
     created_at: datetime
+    access_kind: str = "STANDARD"
 
 
 class AccessRequestListResponse(BaseModel):

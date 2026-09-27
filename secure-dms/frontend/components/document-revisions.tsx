@@ -115,7 +115,15 @@ export function DocumentRevisions({ documentId, locked }: { documentId: string; 
         {[...items].reverse().map((item) => (
           <li key={item.id} className="py-4 text-sm">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="font-medium text-navy">{item.version_label}{item.is_official ? " · Official" : ""}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-navy">{item.version_label}{item.is_official ? " · Official" : ""}</p>
+                {item.seal_value ? (
+                  <span className="inline-flex items-center gap-1 rounded bg-navy/10 px-2 py-0.5 text-xs font-semibold text-navy">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                    Digitally Sealed
+                  </span>
+                ) : null}
+              </div>
               <p>{versionStatusLabel(item.status)}</p>
             </div>
             <p className="mt-1 text-muted">Created by {item.created_by_name} · {formatTimestamp(item.created_at)}</p>
@@ -144,6 +152,24 @@ export function DocumentRevisions({ documentId, locked }: { documentId: string; 
           <p className="mt-3 text-sm text-muted">Integrity</p>
           <p className="break-all font-mono text-xs">{selected.hash_algorithm} {selected.sha256_hash}</p>
           <p className="mt-1 text-sm">{integrity?.integrity_status ?? "Not checked"}</p>
+          {selected.seal_value ? (
+            <div className="mt-3 rounded-md border border-emerald-600/30 bg-emerald-50/50 p-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-900">
+                  Official Digital Seal Verified ({selected.seal_algorithm ?? "HMAC-SHA256"})
+                </p>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                Cryptographic signature generated upon supervisor approval:
+              </p>
+              <p className="mt-1 break-all font-mono text-xs font-medium text-navy">
+                {selected.seal_value}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-2 text-xs text-muted">Digital seal: Pending supervisor approval</div>
+          )}
           {selected.text_excerpt ? <pre className="mt-3 whitespace-pre-wrap rounded-md bg-[#f6f7f8] p-3 text-sm">{selected.text_excerpt}</pre> : null}
           {diff ? <DiffView diff={diff} /> : null}
           <div className="mt-4 flex flex-wrap gap-2">

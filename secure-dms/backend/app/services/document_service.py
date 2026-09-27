@@ -13,7 +13,6 @@ from app.authorization.policies import (
     DOCUMENT_STATUS_TRANSITIONS,
     ELEVATED_DOCUMENT_CLASSIFICATIONS,
     document_transition_action,
-    role_has_system_case_access,
 )
 from app.constants import (
     Action,
@@ -30,7 +29,7 @@ from app.models.access_request import AccessRequest
 from app.models.case import Case
 from app.models.document import Document
 from app.models.user import User
-from app.schemas.document import DocumentDetail, DocumentStatusUpdate, DocumentSummary, DocumentUpdate
+from app.schemas.document import DocumentDetail, DocumentStatusUpdate, DocumentSummary, DocumentTransfer, DocumentUpdate
 from app.services.case_service import require_case
 from app.services.storage_service import StorageService, get_storage
 from app.services.upload_validation import sha256_hex, validate_upload
@@ -114,7 +113,7 @@ def upload_document(
         content,
         get_settings().max_upload_size_mb * 1024 * 1024,
     )
-    pending = _pending_document(case, user, classification)
+    pending = _pending_document(case, user, classification, document_type)
     decision = authorize(user, Action.UPLOAD, ResourceType.DOCUMENT, resource=pending, case=case)
     if not decision.allowed:
         decision = authorize(user, Action.CREATE, ResourceType.DOCUMENT, resource=pending, case=case)
@@ -141,6 +140,12 @@ def upload_document(
         hash_algorithm=HASH_ALGORITHM,
         created_by=user.id,
     )
+    from app.authorization.ownership import assign_document_owner
+
+    try:
+        assign_document_owner(db, document, user.id)
+    except ValueError as exc:
+        raise AppError(422, "validation_error", "This document type is not available.") from exc
     db.add(document)
     try:
         db.flush()
@@ -172,7 +177,12 @@ def update_document(db: Session, user: User, document_id: uuid.UUID, payload: Do
         raise AppError(422, "validation_error", "Provide at least one field to update.")
     document = _load(db, document_id)
     _require_visible(user, document)
-    pending = _pending_document(document.case, user, payload.classification or DocumentClassification(document.classification))
+    pending = _pending_document(
+        document.case,
+        user,
+        payload.classification or DocumentClassification(document.classification),
+        DocumentType(document.document_type),
+    )
     pending.created_by = document.created_by
     pending.status = document.status
     pending.id = document.id
@@ -275,6 +285,8 @@ def _load(db: Session, document_id: uuid.UUID) -> Document:
             joinedload(Document.case),
             joinedload(Document.creator),
             joinedload(Document.approver),
+            joinedload(Document.owner_department),
+            joinedload(Document.custodian),
         )
         .where(Document.id == document_id)
     )
@@ -302,15 +314,13 @@ def _can_read_classification(user: User, document: Document) -> bool:
     if document.classification not in ELEVATED_DOCUMENT_CLASSIFICATIONS:
         return True
     role_name = user.role.name if user.role is not None else None
-    if role_has_system_case_access(role_name) or role_name == RoleName.POLICE_SUPERVISOR.value:
+    if role_name == RoleName.POLICE_SUPERVISOR.value and document.owner_department_id == user.department_id:
         return user_has_case_access(user, document.case)
     return _grant_allows_read(user, document)
 
 
 def _readable_clause(user: User):
     role_name = user.role.name if user.role is not None else None
-    if role_has_system_case_access(role_name) or role_name == RoleName.POLICE_SUPERVISOR.value:
-        return Document.case_id.is_not(None)
     now = datetime.now(timezone.utc)
     granted = exists().where(
         AccessRequest.resource_id == Document.id,
@@ -320,7 +330,10 @@ def _readable_clause(user: User):
         AccessRequest.status == RequestStatus.APPROVED.value,
         or_(AccessRequest.expires_at.is_(None), AccessRequest.expires_at > now),
     )
-    return or_(Document.classification.notin_(tuple(ELEVATED_DOCUMENT_CLASSIFICATIONS)), granted)
+    ordinary = Document.classification.notin_(tuple(ELEVATED_DOCUMENT_CLASSIFICATIONS))
+    if role_name == RoleName.POLICE_SUPERVISOR.value:
+        return or_(ordinary, Document.owner_department_id == user.department_id, granted)
+    return or_(ordinary, granted)
 
 
 def _grant_allows_read(user: User, document: Document) -> bool:
@@ -381,7 +394,23 @@ def _summary(user: User, document: Document) -> DocumentSummary:
 def _detail(user: User, document: Document) -> DocumentDetail:
     case = document.case
     approver = document.approver
+    custodian = document.custodian
+    custodian_name = (custodian.full_name or custodian.username) if custodian is not None else None
+    owner_dept = document.owner_department
+    owner_dept_name = owner_dept.name if owner_dept is not None else None
     summary = _summary(user, document)
+
+    actions = []
+    is_custodian = getattr(document, "custodian_user_id", None) == user.id
+    is_supervisor = (
+        user.role is not None
+        and user.role.name == RoleName.POLICE_SUPERVISOR.value
+        and case is not None
+        and user.department_id == case.department_id
+    )
+    if (is_custodian or is_supervisor) and document.status not in {DocumentStatus.SEALED.value, DocumentStatus.ARCHIVED.value}:
+        actions.append("TRANSFER")
+
     return DocumentDetail(
         **summary.model_dump(),
         description=document.description,
@@ -397,9 +426,61 @@ def _detail(user: User, document: Document) -> DocumentDetail:
         archived_at=document.archived_at,
         case_number=case.case_number if case is not None else "",
         case_title=case.title if case is not None else "",
+        owner_department_code=owner_dept.code if owner_dept is not None else None,
+        owner_department_name=owner_dept_name,
+        custodian_user_id=document.custodian_user_id,
+        custodian_name=custodian_name,
         official_version_number=_official_number(document),
         official_version_label=_official_label(document),
+        allowed_actions=actions,
     )
+
+
+def transfer_document(
+    db: Session,
+    user: User,
+    document_id: uuid.UUID,
+    payload: DocumentTransfer,
+) -> DocumentDetail:
+    document = _load(db, document_id)
+    _require_visible(user, document)
+    if document.status in {DocumentStatus.SEALED.value, DocumentStatus.ARCHIVED.value}:
+        raise AppError(403, "forbidden", "Sealed or archived documents cannot be transferred.")
+
+    is_custodian = document.custodian_user_id == user.id
+    is_supervisor = (
+        user.role is not None
+        and user.role.name == RoleName.POLICE_SUPERVISOR.value
+        and document.case is not None
+        and user.department_id == document.case.department_id
+    )
+    if not (is_custodian or is_supervisor):
+        raise AppError(403, "forbidden", "Only the current custodian or supervisor can transfer document custody.")
+
+    recipient = db.get(User, payload.to_user_id)
+    if recipient is None or not recipient.is_active:
+        raise AppError(422, "validation_error", "Recipient user not found or inactive.")
+
+    prev_custodian = document.custodian or db.get(User, document.custodian_user_id)
+    prev_id = prev_custodian.id if prev_custodian else document.custodian_user_id
+
+    document.custodian_user_id = recipient.id
+    document.custodian = recipient
+    db.commit()
+    db.refresh(document)
+
+    _audit(
+        "DOCUMENT_CUSTODY_TRANSFERRED",
+        user_id=user.id,
+        case_id=document.case_id,
+        document_id=document.id,
+        metadata={
+            "from_user_id": str(prev_id),
+            "to_user_id": str(recipient.id),
+            "reason": payload.reason.strip(),
+        },
+    )
+    return _detail(user, document)
 
 
 def _allowed_transitions(user: User, document: Document) -> list[str]:
@@ -414,17 +495,29 @@ def _allowed_transitions(user: User, document: Document) -> list[str]:
 
 
 class _Pending:
-    def __init__(self, case: Case, user: User, classification: DocumentClassification) -> None:
+    def __init__(
+        self,
+        case: Case,
+        user: User,
+        classification: DocumentClassification,
+        document_type: DocumentType,
+    ) -> None:
         self.id = None
         self.case_id = case.id
         self.case = case
         self.classification = classification.value
         self.status = DocumentStatus.DRAFT.value
         self.created_by = user.id
+        self.document_type = document_type.value
 
 
-def _pending_document(case: Case, user: User, classification: DocumentClassification) -> _Pending:
-    return _Pending(case, user, classification)
+def _pending_document(
+    case: Case,
+    user: User,
+    classification: DocumentClassification,
+    document_type: DocumentType,
+) -> _Pending:
+    return _Pending(case, user, classification, document_type)
 
 
 def _official_number(document: Document) -> int | None:

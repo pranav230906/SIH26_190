@@ -510,28 +510,30 @@ def _ensure_documents(db: Session, cases: dict[str, Case], users: dict[str, User
         extension = filename.rsplit(".", 1)[-1]
         mime = "application/pdf" if extension == "pdf" else "text/plain"
         stored_name, relative = storage.save_case_document(case.case_number, f".{extension}", content)
-        db.add(
-            Document(
-                case_id=case.id,
-                document_number=number,
-                title=title,
-                description=description,
-                document_type=document_type.value,
-                classification=classification.value,
-                status=status.value,
-                original_filename=filename,
-                stored_filename=stored_name,
-                storage_path=relative,
-                mime_type=mime,
-                file_size=len(content),
-                file_hash=sha256_hex(content),
-                hash_algorithm="SHA-256",
-                created_by=creator.id,
-                approved_by=approver.id if approver is not None else None,
-                approved_at=approved_at,
-                sealed_at=sealed_at,
-            )
+        document = Document(
+            case_id=case.id,
+            document_number=number,
+            title=title,
+            description=description,
+            document_type=document_type.value,
+            classification=classification.value,
+            status=status.value,
+            original_filename=filename,
+            stored_filename=stored_name,
+            storage_path=relative,
+            mime_type=mime,
+            file_size=len(content),
+            file_hash=sha256_hex(content),
+            hash_algorithm="SHA-256",
+            created_by=creator.id,
+            approved_by=approver.id if approver is not None else None,
+            approved_at=approved_at,
+            sealed_at=sealed_at,
         )
+        from app.authorization.ownership import assign_document_owner
+
+        assign_document_owner(db, document, creator.id)
+        db.add(document)
 
 
 def _demo_pdf(message: str) -> bytes:
@@ -605,6 +607,9 @@ def _ensure_revision_demo(db: Session, cases: dict[str, Case], users: dict[str, 
             approved_by=supervisor.id,
             approved_at=datetime(2026, 9, 26, 14, 30, tzinfo=timezone.utc),
         )
+        from app.authorization.ownership import assign_document_owner
+
+        assign_document_owner(db, document, police.id)
         db.add(document)
         db.flush()
         v3_stored = (stored_name, relative, digest)
@@ -1134,7 +1139,7 @@ def _ensure_search_demo(db: Session, cases: dict[str, Case], users: dict[str, Us
             "DOC-2026-000010",
             "Scanned scene note",
             "Fictional scanned note. OCR is required to read it.",
-            DocumentType.OTHER,
+            DocumentType.INVESTIGATION_RECORD,
             DocumentClassification.INTERNAL,
             "scanned-scene-note.png",
             "image/png",
@@ -1146,7 +1151,7 @@ def _ensure_search_demo(db: Session, cases: dict[str, Case], users: dict[str, Us
             "DOC-2026-000011",
             "Isolation note",
             "Fictional note used to check case isolation.",
-            DocumentType.OTHER,
+            DocumentType.INVESTIGATION_RECORD,
             DocumentClassification.INTERNAL,
             "isolation-note.txt",
             "text/plain",
@@ -1215,6 +1220,9 @@ def _ensure_official_search_document(
         approved_by=approver.id,
         approved_at=stamped,
     )
+    from app.authorization.ownership import assign_document_owner
+
+    assign_document_owner(db, document, creator.id)
     db.add(document)
     db.flush()
     db.add(

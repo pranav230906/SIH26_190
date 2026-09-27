@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.authorization.permission_service import authorize, enforce, user_has_case_access
+from app.authorization.permission_service import effective_permission_codes
 from app.authorization.policies import role_has_system_case_access
 from app.constants import Action, CaseEventType, CaseStatus, CaseType, RequestStatus, ResourceType, RoleName
 from app.core.exceptions import AppError
@@ -197,7 +198,8 @@ def _filters(
     query: str | None,
 ) -> list:
     filters = []
-    if not role_has_system_case_access(user.role.name):
+    sees_every_case = role_has_system_case_access(user.role.name) and "CASE.READ" in effective_permission_codes(user)
+    if not sees_every_case:
         filters.append(_visible_to(user.id))
     if status is not None:
         filters.append(Case.status == status.value)

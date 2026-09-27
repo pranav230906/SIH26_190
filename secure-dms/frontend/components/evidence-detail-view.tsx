@@ -15,7 +15,7 @@ import {
   formatFileSize,
   formatTimestamp,
 } from "@/lib/format";
-import type { ArtifactSummary, CustodyEvent, EvidenceDetail, IntegrityResult, ProvenanceNode, ProvenanceResponse } from "@/lib/types";
+import type { ArtifactSummary, CustodyEvent, DirectoryUser, EvidenceDetail, IntegrityResult, ProvenanceNode, ProvenanceResponse } from "@/lib/types";
 
 const ARTIFACT_TYPES = [
   "VIDEO_CLIP",
@@ -42,8 +42,21 @@ export function EvidenceDetailView() {
   const [notice, setNotice] = useState<string | null>(null);
   const [artifactOpen, setArtifactOpen] = useState(false);
   const [sourceArtifactId, setSourceArtifactId] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferToUserId, setTransferToUserId] = useState("");
+  const [transferReason, setTransferReason] = useState("");
+  const [directoryUsers, setDirectoryUsers] = useState<DirectoryUser[]>([]);
+  const [transferBusy, setTransferBusy] = useState(false);
   const canDownload = can(permissions, "EVIDENCE.DOWNLOAD");
   const canDownloadArtifact = can(permissions, "DERIVED_ARTIFACT.DOWNLOAD");
+
+  useEffect(() => {
+    if (transferOpen && directoryUsers.length === 0) {
+      apiFetch<{ items: DirectoryUser[] }>("/api/users/directory")
+        .then((res) => setDirectoryUsers(res.items))
+        .catch(() => {});
+    }
+  }, [transferOpen, directoryUsers.length]);
 
   async function reload() {
     const data = await apiFetch<EvidenceDetail>(`/api/evidence/${params.evidenceId}`);
@@ -126,6 +139,19 @@ export function EvidenceDetailView() {
           {record.allowed_actions.includes("ARCHIVE") ? (
             <button type="button" className="rounded-md bg-navy px-3 py-2 text-sm text-white" onClick={() => postAction("archive")}>Archive</button>
           ) : null}
+          {record.allowed_actions.includes("TRANSFER") ? (
+            <button
+              type="button"
+              className="rounded-md border border-line px-3 py-2 text-sm"
+              onClick={() => {
+                setTransferReason("");
+                setTransferToUserId("");
+                setTransferOpen(true);
+              }}
+            >
+              Transfer custody
+            </button>
+          ) : null}
         </div>
       </header>
       {error ? <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">{error}</p> : null}
@@ -135,6 +161,7 @@ export function EvidenceDetailView() {
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <Info label="Case" value={<Link className="text-navy underline" href={`/cases/${record.case_id}`}>{record.case_number}</Link>} />
           <Info label="Created by" value={record.created_by_name} />
+          <Info label="Current custodian" value={record.custodian_name || record.created_by_name} />
           <Info label="Created date" value={formatTimestamp(record.created_at)} />
           <Info label="File type" value={record.mime_type} />
           <Info label="File size" value={formatFileSize(record.file_size)} />
@@ -210,6 +237,86 @@ export function EvidenceDetailView() {
           }}
           onError={setError}
         />
+      ) : null}
+      {transferOpen ? (
+        <div className="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-navy/40 p-4">
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setTransferBusy(true);
+              try {
+                const updated = await apiFetch<EvidenceDetail>(`/api/evidence/${record.id}/transfer`, {
+                  method: "POST",
+                  body: JSON.stringify({
+                    to_user_id: transferToUserId,
+                    reason: transferReason.trim(),
+                  }),
+                });
+                setRecord(updated);
+                setTransferOpen(false);
+                setNotice("Evidence custody transferred successfully.");
+                await reload();
+              } catch (caught) {
+                setError(caught instanceof ApiClientError ? caught.message : "Failed to transfer evidence custody.");
+              } finally {
+                setTransferBusy(false);
+              }
+            }}
+            className="my-8 w-[min(100%,32rem)] space-y-4 rounded-lg border border-line bg-white p-6"
+          >
+            <h3 className="text-lg font-semibold text-navy">Transfer Evidence Custody</h3>
+            <p className="text-sm text-muted">
+              Transfer custodianship of this evidence item to another active case participant. Every transfer is permanently logged in the chain of custody.
+            </p>
+            <label className="block text-sm">
+              <span className="font-medium text-navy">New Custodian</span>
+              <select
+                required
+                value={transferToUserId}
+                onChange={(e) => setTransferToUserId(e.target.value)}
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+              >
+                <option value="">Select recipient...</option>
+                {directoryUsers
+                  .filter((u) => u.id !== record.custodian_user_id)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name} ({u.username}) · {u.role_name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="font-medium text-navy">Transfer Justification / Reason</span>
+              <textarea
+                required
+                minLength={3}
+                rows={3}
+                value={transferReason}
+                onChange={(e) => setTransferReason(e.target.value)}
+                placeholder="Reason for custody transfer (e.g. handoff to forensic lab for analysis)..."
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={transferBusy}
+                className="rounded-md border border-line px-4 py-2 text-sm"
+                onClick={() => setTransferOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={transferBusy || !transferToUserId}
+                className="rounded-md bg-navy px-4 py-2 text-sm text-white disabled:opacity-50"
+              >
+                {transferBusy ? "Transferring…" : "Confirm Transfer"}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
     </div>
   );

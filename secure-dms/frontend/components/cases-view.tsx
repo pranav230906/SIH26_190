@@ -44,6 +44,11 @@ export function CasesView() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [requestModalOpen, setRequestModalOpen] = useState(false);
+  const [reqCaseNumber, setReqCaseNumber] = useState("");
+  const [reqJustification, setReqJustification] = useState("");
+  const [reqEmergency, setReqEmergency] = useState(false);
+  const [reqModalError, setReqModalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!can(permissions, "DEPARTMENT.READ")) {
@@ -135,11 +140,25 @@ export function CasesView() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold">Case register</h2>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
-          Search covers case number and title. The service returns only cases this account can open.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">Case register</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
+            Search covers case number and title. The service returns only cases this account can open.
+          </p>
+        </div>
+        {can(permissions, "ACCESS_REQUEST.CREATE") ? (
+          <button
+            type="button"
+            className="rounded-md bg-navy px-3 py-1.5 text-sm text-white"
+            onClick={() => {
+              setReqModalError(null);
+              setRequestModalOpen(true);
+            }}
+          >
+            Request case access
+          </button>
+        ) : null}
       </div>
 
       <form
@@ -326,6 +345,103 @@ export function CasesView() {
           </>
         ) : null}
       </section>
+
+      {requestModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-lg border border-line bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-navy">Request Case Access</h3>
+            <p className="mt-1 text-sm text-muted">
+              Submit an access request to the owning police department for case examination or trial proceedings.
+            </p>
+            {reqModalError ? (
+              <p role="alert" className="mt-3 rounded-md bg-danger-bg p-2 text-sm text-danger">
+                {reqModalError}
+              </p>
+            ) : null}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setReqModalError(null);
+                setBusy(true);
+                try {
+                  await apiFetch("/api/access-requests/case", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      case_number: reqCaseNumber.trim(),
+                      justification: reqJustification.trim(),
+                      emergency: reqEmergency,
+                    }),
+                  });
+                  setRequestModalOpen(false);
+                  setReqCaseNumber("");
+                  setReqJustification("");
+                  setReqEmergency(false);
+                  setNotice("Case access request submitted. Awaiting supervisor review.");
+                } catch (caught) {
+                  setReqModalError(caseErrorMessage(caught, "Request could not be submitted."));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              className="mt-4 space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-navy">
+                  Case Number
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. CASE-2026-001"
+                    className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                    value={reqCaseNumber}
+                    onChange={(e) => setReqCaseNumber(e.target.value)}
+                  />
+                </label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-navy">
+                  Justification
+                  <textarea
+                    required
+                    minLength={10}
+                    rows={3}
+                    placeholder="Provide official operational or legal reason for accessing this case..."
+                    className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                    value={reqJustification}
+                    onChange={(e) => setReqJustification(e.target.value)}
+                  />
+                </label>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={reqEmergency}
+                  onChange={(e) => setReqEmergency(e.target.checked)}
+                  className="rounded border-line"
+                />
+                <span>Urgent / Emergency Access (24-hour temporary grant)</span>
+              </label>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="rounded-md border border-line px-4 py-2 text-sm"
+                  onClick={() => setRequestModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="rounded-md bg-navy px-4 py-2 text-sm text-white disabled:opacity-50"
+                >
+                  {busy ? "Submitting…" : "Submit Request"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={confirmOpen}

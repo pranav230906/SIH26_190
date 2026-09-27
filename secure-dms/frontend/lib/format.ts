@@ -57,9 +57,20 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   EVIDENCE_RECORD: "Evidence record",
   FORENSIC_REPORT: "Forensic report",
   LEGAL_NOTICE: "Legal notice",
+  PROSECUTION_SUBMISSION: "Prosecution submission",
   JUDGMENT: "Judgment",
+  COURT_ORDER: "Court order",
+  PROCEEDINGS: "Proceedings",
   CASE_DIARY: "Case diary",
-  OTHER: "Other",
+};
+
+const CREATABLE_DOCUMENT_TYPES: Record<string, string[]> = {
+  POLICE_OFFICER: ["FIR", "POLICE_REPORT", "INVESTIGATION_RECORD", "WITNESS_STATEMENT", "CHARGE_SHEET", "EVIDENCE_RECORD", "CASE_DIARY"],
+  POLICE_SUPERVISOR: ["FIR", "POLICE_REPORT", "INVESTIGATION_RECORD", "WITNESS_STATEMENT", "CHARGE_SHEET", "EVIDENCE_RECORD", "CASE_DIARY"],
+  FORENSIC_EXAMINER: ["FORENSIC_REPORT"],
+  FORENSIC_REVIEWER: ["FORENSIC_REPORT"],
+  PROSECUTOR: ["LEGAL_NOTICE", "COURT_FILING", "PROSECUTION_SUBMISSION"],
+  JUDICIAL_USER: ["JUDGMENT", "COURT_ORDER", "PROCEEDINGS"],
 };
 
 const DOCUMENT_CLASSIFICATION_LABELS: Record<string, string> = {
@@ -80,6 +91,12 @@ const DOCUMENT_STATUS_LABELS: Record<string, string> = {
 export function documentTypeLabel(value: string): string {
   return DOCUMENT_TYPE_LABELS[value] ?? value;
 }
+
+export function creatableDocumentTypes(role: string): string[] {
+  return CREATABLE_DOCUMENT_TYPES[role] ?? [];
+}
+
+export const SEARCH_DOCUMENT_TYPES = Object.keys(DOCUMENT_TYPE_LABELS);
 
 export function documentClassificationLabel(value: string): string {
   return DOCUMENT_CLASSIFICATION_LABELS[value] ?? value;
@@ -189,6 +206,7 @@ const CUSTODY_LABELS: Record<string, string> = {
   FORENSIC_REVIEW_ACCEPTED: "Forensic review accepted",
   FORENSIC_REVIEW_RETURNED: "Returned for correction",
   EVIDENCE_SEALED: "Evidence sealed",
+  EVIDENCE_TRANSFERRED: "Custody transferred",
 };
 
 const VERSION_STATUS_LABELS: Record<string, string> = {

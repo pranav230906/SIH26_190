@@ -38,6 +38,18 @@ class DocumentDetail(DocumentSummary):
     official_version_number: int | None = None
     official_version_label: str | None = None
     search_notice: str | None = None
+    owner_department_code: str | None = None
+    owner_department_name: str | None = None
+    custodian_user_id: uuid.UUID | None = None
+    custodian_name: str | None = None
+    allowed_actions: list[str] = []
+
+
+class DocumentTransfer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    to_user_id: uuid.UUID
+    reason: str = Field(min_length=3, max_length=1000)
 
 
 class DocumentListResponse(BaseModel):

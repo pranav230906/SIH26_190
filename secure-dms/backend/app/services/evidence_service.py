@@ -14,7 +14,7 @@ from app.authorization.permission_service import (
     user_has_case_access,
     user_has_forensic_evidence_access,
 )
-from app.authorization.policies import ELEVATED_DOCUMENT_CLASSIFICATIONS, EVIDENCE_STATUS_TRANSITIONS, role_has_system_case_access
+from app.authorization.policies import ELEVATED_DOCUMENT_CLASSIFICATIONS, EVIDENCE_STATUS_TRANSITIONS
 from app.constants import (
     Action,
     ArtifactStatus,
@@ -38,6 +38,7 @@ from app.schemas.evidence import (
     ArtifactSummary,
     EvidenceDetail,
     EvidenceSummary,
+    EvidenceTransfer,
     IntegrityResult,
     ProvenanceNode,
     ProvenanceResponse,
@@ -127,7 +128,7 @@ def upload_evidence(
     if len(clean_title) < 3 or len(clean_title) > 200:
         raise AppError(422, "validation_error", "Title must be between 3 and 200 characters.")
     digest = sha256_hex(content)
-    stored_name, relative = _store_original(case.case_number, extension, content, digest)
+    stored_name, relative, encrypted = _store_original(case.case_number, extension, content, digest)
     evidence = Evidence(
         case_id=case.id,
         evidence_number=_next_number(db, Evidence, Evidence.case_id, Evidence.evidence_number, case.id, "EVD"),
@@ -143,7 +144,9 @@ def upload_evidence(
         file_size=len(content),
         sha256_hash=digest,
         hash_algorithm=HASH_ALGORITHM,
+        storage_encrypted=encrypted,
         created_by=user.id,
+        custodian_user_id=user.id,
     )
     db.add(evidence)
     try:
@@ -241,6 +244,7 @@ def check_evidence_integrity(db: Session, user: User, evidence_id: uuid.UUID) ->
         artifact_id=None,
         relative_path=evidence.storage_path,
         stored_hash=evidence.sha256_hash,
+        encrypted=evidence.storage_encrypted,
     )
 
 
@@ -253,7 +257,7 @@ def list_chain_of_custody(db: Session, user: User, evidence_id: uuid.UUID):
     return list_events(db, evidence.id)
 
 
-def open_evidence_download(db: Session, user: User, evidence_id: uuid.UUID) -> tuple[Evidence, str]:
+def open_evidence_download(db: Session, user: User, evidence_id: uuid.UUID) -> tuple[Evidence, str, bool]:
     evidence = _load_evidence(db, evidence_id)
     _require_visible(user, evidence)
     enforce(authorize(user, Action.DOWNLOAD, ResourceType.EVIDENCE, resource=evidence, case=evidence.case))
@@ -265,6 +269,7 @@ def open_evidence_download(db: Session, user: User, evidence_id: uuid.UUID) -> t
         artifact_id=None,
         relative_path=evidence.storage_path,
         stored_hash=evidence.sha256_hash,
+        encrypted=evidence.storage_encrypted,
     )
     if result.integrity_status != IntegrityStatus.VERIFIED.value:
         raise AppError(409, "conflict", "The original evidence failed its integrity check. Download is blocked.")
@@ -280,8 +285,8 @@ def open_evidence_download(db: Session, user: User, evidence_id: uuid.UUID) -> t
     )
     db.commit()
     _audit("EVIDENCE_DOWNLOADED", user_id=user.id, case_id=evidence.case_id, evidence_id=evidence.id)
-    path = get_storage().get_file(evidence.storage_path)
-    return evidence, str(path)
+    path, temporary = _plaintext_path(evidence.storage_path, evidence.storage_encrypted)
+    return evidence, path, temporary
 
 
 def provenance(db: Session, user: User, evidence_id: uuid.UUID) -> ProvenanceResponse:
@@ -393,10 +398,11 @@ def check_artifact_integrity(db: Session, user: User, artifact_id: uuid.UUID) ->
         artifact_id=artifact.id,
         relative_path=artifact.storage_path,
         stored_hash=artifact.sha256_hash,
+        encrypted=artifact.storage_encrypted,
     )
 
 
-def open_artifact_download(db: Session, user: User, artifact_id: uuid.UUID) -> tuple[DerivedArtifact, str]:
+def open_artifact_download(db: Session, user: User, artifact_id: uuid.UUID) -> tuple[DerivedArtifact, str, bool]:
     artifact = _load_artifact(db, artifact_id)
     _require_artifact_visible(user, artifact)
     enforce(authorize(user, Action.DOWNLOAD, ResourceType.DERIVED_ARTIFACT, resource=artifact, case=artifact.case))
@@ -408,11 +414,12 @@ def open_artifact_download(db: Session, user: User, artifact_id: uuid.UUID) -> t
         artifact_id=artifact.id,
         relative_path=artifact.storage_path,
         stored_hash=artifact.sha256_hash,
+        encrypted=artifact.storage_encrypted,
     )
     if result.integrity_status != IntegrityStatus.VERIFIED.value:
         raise AppError(409, "conflict", "The derived artifact failed its integrity check. Download is blocked.")
-    path = get_storage().get_file(artifact.storage_path)
-    return artifact, str(path)
+    path, temporary = _plaintext_path(artifact.storage_path, artifact.storage_encrypted)
+    return artifact, path, temporary
 
 
 def _create_artifact(
@@ -449,7 +456,7 @@ def _create_artifact(
     if parent is not None:
         _assert_no_cycle(db, parent.id)
     digest = sha256_hex(content)
-    stored_name, relative = _store_derived(evidence.case.case_number, extension, content, digest)
+    stored_name, relative, encrypted = _store_derived(evidence.case.case_number, extension, content, digest)
     artifact = DerivedArtifact(
         case_id=evidence.case_id,
         source_evidence_id=evidence.id,
@@ -468,6 +475,7 @@ def _create_artifact(
         file_size=len(content),
         sha256_hash=digest,
         hash_algorithm=HASH_ALGORITHM,
+        storage_encrypted=encrypted,
         created_by=user.id,
         forensic_request_id=forensic_request_id,
     )
@@ -510,24 +518,30 @@ def _create_artifact(
     return _artifact_summary(stored)
 
 
-def _store_original(case_number: str, extension: str, content: bytes, digest: str) -> tuple[str, str]:
+def _store_original(case_number: str, extension: str, content: bytes, digest: str) -> tuple[str, str, bool]:
+    from app.core.file_crypto import protect_new_bytes, read_plaintext
+
     storage = get_storage()
-    stored_name, relative = storage.save_original_evidence(case_number, extension, content)
-    return _confirm_hash(storage, stored_name, relative, digest)
+    stored, encrypted = protect_new_bytes(content)
+    stored_name, relative = storage.save_original_evidence(case_number, extension, stored)
+    return _confirm_hash(storage, stored_name, relative, digest, encrypted, read_plaintext)
 
 
-def _store_derived(case_number: str, extension: str, content: bytes, digest: str) -> tuple[str, str]:
+def _store_derived(case_number: str, extension: str, content: bytes, digest: str) -> tuple[str, str, bool]:
+    from app.core.file_crypto import protect_new_bytes, read_plaintext
+
     storage = get_storage()
-    stored_name, relative = storage.save_derived_artifact(case_number, extension, content)
-    return _confirm_hash(storage, stored_name, relative, digest)
+    stored, encrypted = protect_new_bytes(content)
+    stored_name, relative = storage.save_derived_artifact(case_number, extension, stored)
+    return _confirm_hash(storage, stored_name, relative, digest, encrypted, read_plaintext)
 
 
-def _confirm_hash(storage, stored_name: str, relative: str, digest: str) -> tuple[str, str]:
-    written = storage.get_file(relative).read_bytes()
+def _confirm_hash(storage, stored_name: str, relative: str, digest: str, encrypted: bool, read_plaintext) -> tuple[str, str, bool]:
+    written = read_plaintext(storage.get_file(relative).read_bytes(), encrypted)
     if sha256_hex(written) != digest:
         storage.delete_file(relative)
         raise AppError(500, "internal_error", "The stored file did not match its hash.")
-    return stored_name, relative
+    return stored_name, relative, encrypted
 
 
 def _assert_source_intact(
@@ -546,6 +560,7 @@ def _assert_source_intact(
         artifact_id=artifact_id,
         relative_path=source.storage_path,
         stored_hash=source.sha256_hash,
+        encrypted=source.storage_encrypted,
     )
     if result.integrity_status != IntegrityStatus.VERIFIED.value:
         raise AppError(409, "conflict", message or "Source integrity check failed. Processing is blocked.")
@@ -562,6 +577,22 @@ def _assert_no_cycle(db: Session, start_id: uuid.UUID) -> None:
         current = parent_id
 
 
+def _plaintext_path(relative_path: str, encrypted: bool) -> tuple[str, bool]:
+    import tempfile
+
+    from app.core.file_crypto import read_plaintext
+
+    path = get_storage().get_file(relative_path)
+    if not encrypted:
+        return str(path), False
+    handle = tempfile.NamedTemporaryFile(delete=False, suffix=path.suffix)
+    try:
+        handle.write(read_plaintext(path.read_bytes(), True))
+    finally:
+        handle.close()
+    return handle.name, True
+
+
 def _compare_and_record(
     db: Session,
     user: User,
@@ -571,9 +602,12 @@ def _compare_and_record(
     artifact_id: uuid.UUID | None,
     relative_path: str,
     stored_hash: str,
+    encrypted: bool = False,
 ) -> IntegrityResult:
+    from app.core.file_crypto import read_plaintext
+
     path = get_storage().get_file(relative_path)
-    current = sha256_hex(path.read_bytes())
+    current = sha256_hex(read_plaintext(path.read_bytes(), encrypted))
     status = IntegrityStatus.VERIFIED.value if current == stored_hash else IntegrityStatus.INTEGRITY_MISMATCH.value
     db.add(
         EvidenceIntegrityEvent(
@@ -626,7 +660,11 @@ def _read_limited(upload: UploadFile) -> bytes:
 def _load_evidence(db: Session, evidence_id: uuid.UUID) -> Evidence:
     evidence = db.scalar(
         select(Evidence)
-        .options(joinedload(Evidence.case), joinedload(Evidence.creator))
+        .options(
+            joinedload(Evidence.case),
+            joinedload(Evidence.creator),
+            joinedload(Evidence.custodian),
+        )
         .where(Evidence.id == evidence_id)
     )
     if evidence is None or evidence.case is None:
@@ -690,20 +728,47 @@ def _artifact_visible(user: User, artifact: DerivedArtifact) -> bool:
 
 
 def _can_read_classification(user: User, resource, resource_type: ResourceType) -> bool:
-    if user_has_forensic_evidence_access(user, resource, Action.READ):
-        return True
+    role_name = user.role.name if user.role is not None else None
+    if role_name in {RoleName.FORENSIC_EXAMINER.value, RoleName.FORENSIC_REVIEWER.value}:
+        return user_has_forensic_evidence_access(user, resource, Action.READ)
+    if role_name == RoleName.PROSECUTOR.value:
+        return _grant_allows_read(user, resource, resource_type)
+    if role_name == RoleName.JUDICIAL_USER.value:
+        return _grant_allows_read(user, resource, resource_type) or _package_allows(resource)
     if getattr(resource, "classification", None) not in ELEVATED_DOCUMENT_CLASSIFICATIONS:
         return True
-    role_name = user.role.name if user.role is not None else None
-    if role_has_system_case_access(role_name) or role_name == RoleName.POLICE_SUPERVISOR.value:
+    if role_name == RoleName.POLICE_SUPERVISOR.value:
         return user_has_case_access(user, resource.case)
     return _grant_allows_read(user, resource, resource_type)
 
 
+def _package_allows(resource) -> bool:
+    from sqlalchemy.orm import object_session
+
+    from app.models.court_package import CourtPackage, CourtPackageItem
+
+    db = object_session(resource)
+    resource_id = getattr(resource, "id", None)
+    if db is None or resource_id is None:
+        return False
+    evidence_id = resource_id if resource.__class__.__name__ == "Evidence" else getattr(resource, "source_evidence_id", None)
+    artifact_id = resource_id if resource.__class__.__name__ == "DerivedArtifact" else None
+    filters = [CourtPackage.status.in_(("SUBMITTED", "VERIFIED", "MISMATCH"))]
+    matches = []
+    if evidence_id is not None:
+        matches.append(CourtPackageItem.evidence_id == evidence_id)
+    if artifact_id is not None:
+        matches.append(CourtPackageItem.artifact_id == artifact_id)
+    if not matches:
+        return False
+    row = db.scalar(
+        select(CourtPackageItem.id).join(CourtPackage, CourtPackage.id == CourtPackageItem.package_id).where(*filters, or_(*matches))
+    )
+    return row is not None
+
+
 def _readable_clause(user: User, classification_column, id_column, resource_type: ResourceType):
     role_name = user.role.name if user.role is not None else None
-    if role_has_system_case_access(role_name) or role_name == RoleName.POLICE_SUPERVISOR.value:
-        return classification_column.is_not(None)
     now = datetime.now(timezone.utc)
     granted = exists().where(
         AccessRequest.resource_id == id_column,
@@ -713,7 +778,46 @@ def _readable_clause(user: User, classification_column, id_column, resource_type
         AccessRequest.status == RequestStatus.APPROVED.value,
         or_(AccessRequest.expires_at.is_(None), AccessRequest.expires_at > now),
     )
+    if role_name == RoleName.POLICE_SUPERVISOR.value:
+        return classification_column.is_not(None)
+    if role_name in {RoleName.FORENSIC_EXAMINER.value, RoleName.FORENSIC_REVIEWER.value}:
+        return _forensic_clause(user, id_column, resource_type)
+    if role_name == RoleName.PROSECUTOR.value:
+        return granted
+    if role_name == RoleName.JUDICIAL_USER.value:
+        return or_(granted, _package_clause(id_column, resource_type))
     return or_(classification_column.notin_(tuple(ELEVATED_DOCUMENT_CLASSIFICATIONS)), granted)
+
+
+def _forensic_clause(user: User, id_column, resource_type: ResourceType):
+    from app.authorization.policies import EXAMINATION_STATUSES, REVIEW_VISIBLE_STATUSES
+    from app.models.forensic import ForensicRequest, ForensicRequestEvidence
+
+    role_name = user.role.name if user.role is not None else None
+    statuses = EXAMINATION_STATUSES if role_name == RoleName.FORENSIC_EXAMINER.value else REVIEW_VISIBLE_STATUSES
+    filters = [
+        ForensicRequest.id == ForensicRequestEvidence.request_id,
+        ForensicRequest.status.in_(tuple(statuses)),
+    ]
+    if role_name == RoleName.FORENSIC_EXAMINER.value:
+        filters.append(ForensicRequest.assigned_to == user.id)
+    if resource_type == ResourceType.DERIVED_ARTIFACT:
+        filters.append(DerivedArtifact.id == id_column)
+        filters.append(ForensicRequestEvidence.evidence_id == DerivedArtifact.source_evidence_id)
+        return exists().where(*filters)
+    filters.append(ForensicRequestEvidence.evidence_id == id_column)
+    return exists().where(*filters)
+
+
+def _package_clause(id_column, resource_type: ResourceType):
+    from app.models.court_package import CourtPackage, CourtPackageItem
+
+    link = CourtPackageItem.artifact_id == id_column if resource_type == ResourceType.DERIVED_ARTIFACT else CourtPackageItem.evidence_id == id_column
+    return exists().where(
+        link,
+        CourtPackage.id == CourtPackageItem.package_id,
+        CourtPackage.status.in_(("SUBMITTED", "VERIFIED", "MISMATCH")),
+    )
 
 
 def _grant_allows_read(user: User, resource, resource_type: ResourceType) -> bool:
@@ -773,6 +877,8 @@ def _detail(db: Session, user: User, evidence: Evidence) -> EvidenceDetail:
         .where(EvidenceIntegrityEvent.evidence_id == evidence.id)
         .order_by(EvidenceIntegrityEvent.checked_at.desc())
     )
+    custodian = evidence.custodian
+    custodian_name = (custodian.full_name or custodian.username) if custodian is not None else None
     return EvidenceDetail(
         **summary.model_dump(),
         description=evidence.description,
@@ -784,6 +890,8 @@ def _detail(db: Session, user: User, evidence: Evidence) -> EvidenceDetail:
         case_number=evidence.case.case_number if evidence.case is not None else "",
         case_title=evidence.case.title if evidence.case is not None else "",
         last_integrity_status=latest,
+        custodian_user_id=evidence.custodian_user_id,
+        custodian_name=custodian_name,
     )
 
 
@@ -807,7 +915,75 @@ def _allowed_actions(user: User, evidence: Evidence) -> list[str]:
         user, Action.UPLOAD, ResourceType.DERIVED_ARTIFACT, resource=pending, case=case
     ).allowed:
         actions.append("CREATE_ARTIFACT")
+
+    is_custodian = getattr(evidence, "custodian_user_id", None) == user.id
+    is_supervisor = (
+        user.role is not None
+        and user.role.name == RoleName.POLICE_SUPERVISOR.value
+        and case is not None
+        and user.department_id == case.department_id
+    )
+    if (is_custodian or is_supervisor) and evidence.status != EvidenceStatus.ARCHIVED.value:
+        actions.append("TRANSFER")
     return actions
+
+
+def transfer_evidence(
+    db: Session,
+    user: User,
+    evidence_id: uuid.UUID,
+    payload: EvidenceTransfer,
+) -> EvidenceDetail:
+    evidence = _load_evidence(db, evidence_id)
+    _require_visible(user, evidence)
+    if evidence.status == EvidenceStatus.ARCHIVED.value:
+        raise AppError(403, "forbidden", "Archived evidence cannot be transferred.")
+
+    is_custodian = evidence.custodian_user_id == user.id
+    is_supervisor = (
+        user.role is not None
+        and user.role.name == RoleName.POLICE_SUPERVISOR.value
+        and evidence.case is not None
+        and user.department_id == evidence.case.department_id
+    )
+    if not (is_custodian or is_supervisor):
+        raise AppError(403, "forbidden", "Only the current custodian or supervisor can transfer evidence custody.")
+
+    recipient = db.get(User, payload.to_user_id)
+    if recipient is None or not recipient.is_active:
+        raise AppError(422, "validation_error", "Recipient user not found or inactive.")
+
+    prev_custodian = evidence.custodian or db.get(User, evidence.custodian_user_id)
+    prev_name = (prev_custodian.full_name or prev_custodian.username) if prev_custodian else "Previous custodian"
+    recipient_name = recipient.full_name or recipient.username
+
+    evidence.custodian_user_id = recipient.id
+    evidence.custodian = recipient
+
+    from app.services.custody_service import record_event
+    record_event(
+        db,
+        case_id=evidence.case_id,
+        evidence_id=evidence.id,
+        event_type=CustodyEventType.EVIDENCE_TRANSFERRED,
+        performed_by=user.id,
+        description=f"Custody transferred from {prev_name} to {recipient_name}. Reason: {payload.reason.strip()}",
+        metadata={"from_user_id": str(prev_custodian.id if prev_custodian else ""), "to_user_id": str(recipient.id)},
+    )
+    db.commit()
+    db.refresh(evidence)
+    _audit(
+        "EVIDENCE_TRANSFERRED",
+        user_id=user.id,
+        case_id=evidence.case_id,
+        evidence_id=evidence.id,
+        metadata={
+            "from_user_id": str(prev_custodian.id if prev_custodian else ""),
+            "to_user_id": str(recipient.id),
+            "reason": payload.reason.strip(),
+        },
+    )
+    return _detail(db, user, evidence)
 
 
 def _artifact_summary(artifact: DerivedArtifact) -> ArtifactSummary:

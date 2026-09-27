@@ -1,7 +1,14 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class EvidenceTransfer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    to_user_id: uuid.UUID
+    reason: str = Field(min_length=3, max_length=1000)
 
 
 class EvidenceSummary(BaseModel):
@@ -29,6 +36,8 @@ class EvidenceDetail(EvidenceSummary):
     case_number: str
     case_title: str
     last_integrity_status: str | None
+    custodian_user_id: uuid.UUID | None = None
+    custodian_name: str | None = None
 
 
 class EvidenceListResponse(BaseModel):

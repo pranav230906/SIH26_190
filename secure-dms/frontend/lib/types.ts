@@ -108,6 +108,7 @@ export type AccessRequestRecord = {
   review_note: string | null;
   expires_at: string | null;
   created_at: string;
+  access_kind?: string;
 };
 
 export type DocumentSummary = {
@@ -142,6 +143,11 @@ export type DocumentDetail = DocumentSummary & {
   official_version_number: number | null;
   official_version_label: string | null;
   search_notice?: string | null;
+  owner_department_code?: string | null;
+  owner_department_name?: string | null;
+  custodian_user_id?: string | null;
+  custodian_name?: string | null;
+  allowed_actions?: string[];
 };
 
 export type DocumentVersionSummary = {
@@ -165,11 +171,15 @@ export type DocumentVersionSummary = {
   mime_type: string;
   file_size: number;
   allowed_actions: string[];
+  seal_algorithm?: string | null;
+  seal_value?: string | null;
 };
 
 export type DocumentVersionDetail = DocumentVersionSummary & {
   submitted_at: string | null;
   text_excerpt: string | null;
+  seal_algorithm: string | null;
+  seal_value: string | null;
 };
 
 export type VersionDiffChange = {
@@ -226,6 +236,8 @@ export type EvidenceDetail = EvidenceSummary & {
   case_number: string;
   case_title: string;
   last_integrity_status: string | null;
+  custodian_user_id?: string | null;
+  custodian_name?: string | null;
 };
 
 export type EvidenceListResponse = {
@@ -486,6 +498,18 @@ export type RagQueryResponse = {
   authorized_documents: number;
   retrieved_sources: number;
   citations: RagCitation[];
+};
+
+export type RoleRead = {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+};
+
+export type RoleListResponse = {
+  items: RoleRead[];
+  all_permissions: string[];
 };
 
 export type ApiErrorBody = {

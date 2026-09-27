@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, Uuid, func
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -38,12 +38,15 @@ class Evidence(Base):
     file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
     sha256_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     hash_algorithm: Mapped[str] = mapped_column(String(16), nullable=False, default="SHA-256", server_default="SHA-256")
+    storage_encrypted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    custodian_user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     sealed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     case: Mapped["Case"] = relationship(back_populates="evidence_items")
     creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+    custodian: Mapped["User | None"] = relationship(foreign_keys=[custodian_user_id])
     artifacts: Mapped[list["DerivedArtifact"]] = relationship(
         back_populates="source_evidence",
         foreign_keys="DerivedArtifact.source_evidence_id",
@@ -90,6 +93,7 @@ class DerivedArtifact(Base):
     file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
     sha256_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     hash_algorithm: Mapped[str] = mapped_column(String(16), nullable=False, default="SHA-256", server_default="SHA-256")
+    storage_encrypted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     forensic_request_id: Mapped[uuid.UUID | None] = mapped_column(

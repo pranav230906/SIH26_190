@@ -2,23 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SEARCH_DOCUMENT_TYPES } from "@/lib/format";
 import { ApiClientError, apiFetch } from "@/lib/api";
 import type { CaseListResponse, DepartmentRecord, SearchResponse, SearchResult, SearchSuggestion } from "@/lib/types";
 
-const DOCUMENT_TYPES = [
-  "FIR",
-  "POLICE_REPORT",
-  "INVESTIGATION_RECORD",
-  "WITNESS_STATEMENT",
-  "CHARGE_SHEET",
-  "COURT_FILING",
-  "EVIDENCE_RECORD",
-  "FORENSIC_REPORT",
-  "LEGAL_NOTICE",
-  "JUDGMENT",
-  "CASE_DIARY",
-  "OTHER",
-];
+const DOCUMENT_TYPES = SEARCH_DOCUMENT_TYPES;
 
 const MATCH_LABEL: Record<string, string> = {
   LEXICAL: "Exact keyword",

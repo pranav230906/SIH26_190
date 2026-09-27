@@ -74,6 +74,11 @@ def create_revision(db: Session, user: User, document_id: uuid.UUID, upload: Upl
     if document.status in _LOCKED:
         raise AppError(403, "forbidden", "You are not authorized to perform this action.")
     enforce(authorize(user, Action.CREATE, ResourceType.REVISION, case=document.case))
+    from app.authorization.ownership import institution_code_for_type, role_institution_code
+
+    role_name = user.role.name if user.role is not None else None
+    if role_institution_code(role_name) != institution_code_for_type(document.document_type):
+        raise AppError(403, "forbidden", "You are not authorized to perform this action.")
     official = _official(db, document.id)
     if official is None:
         raise AppError(422, "validation_error", "An official version is required before a new revision can be created.")
@@ -367,6 +372,11 @@ def _promote(db: Session, version: DocumentVersion, user: User, now: datetime) -
     document.file_hash = version.sha256_hash
     document.hash_algorithm = version.hash_algorithm
     document.updated_at = now
+    from app.core.approval_seal import approval_seal
+
+    algorithm, value = approval_seal(version.sha256_hash, str(user.id), now)
+    version.seal_algorithm = algorithm
+    version.seal_value = value
 
 
 def _integrity(version: DocumentVersion) -> VersionIntegrity:
@@ -510,6 +520,8 @@ def _summary(user: User, version: DocumentVersion) -> VersionSummary:
         mime_type=version.mime_type,
         file_size=version.file_size,
         allowed_actions=_actions(user, version),
+        seal_algorithm=version.seal_algorithm,
+        seal_value=version.seal_value,
     )
 
 
@@ -517,7 +529,11 @@ def _detail(user: User, version: DocumentVersion) -> VersionDetail:
     excerpt = _text(version)
     if excerpt is not None and len(excerpt) > 12000:
         excerpt = excerpt[:12000]
-    return VersionDetail(**_summary(user, version).model_dump(), submitted_at=version.submitted_at, text_excerpt=excerpt)
+    return VersionDetail(
+        **_summary(user, version).model_dump(),
+        submitted_at=version.submitted_at,
+        text_excerpt=excerpt,
+    )
 
 
 def _actions(user: User, version: DocumentVersion) -> list[str]:

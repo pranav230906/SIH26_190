@@ -1,6 +1,6 @@
 # Secure DMS backend
 
-Case-centric API for the demonstration document system. This service authenticates users, authorizes case work, and stores document metadata beside local files. Evidence vault, OCR, and court packages are not part of this service yet.
+Case-centric API for the demonstration document system. This service authenticates users, authorizes case work, stores documents and evidence, and builds court packages the court can verify.
 
 Passwords are hashed with Argon2. Access and refresh tokens are JWTs signed with secrets from the environment. Refresh tokens are stored only as SHA-256 hashes so logout can revoke them. The API never returns `password_hash`.
 
@@ -122,6 +122,10 @@ Uploaded files are stored under `backend/storage/cases/{case number}/documents/`
 | GET | `/api/artifacts/{artifact_id}/integrity` | Compare an artifact file with its recorded SHA-256 |
 | GET | `/api/artifacts/{artifact_id}/download` | Authorized artifact stream |
 | POST | `/api/artifacts/{artifact_id}/artifacts` | Derive another artifact from an existing artifact |
+| GET | `/api/court-packages` | Packages on cases the caller may read |
+| POST | `/api/cases/{case_key}/court-packages` | Build a package from records the caller can already read |
+| POST | `/api/court-packages/{package_id}/submit` | Seal and submit a draft package |
+| POST | `/api/court-packages/{package_id}/verify` | Recompute hashes and report a mismatch. Files are not repaired |
 | GET | `/api/health` | Database connectivity check |
 
 Errors use one JSON shape:
@@ -134,7 +138,9 @@ Validation errors add a `details` array. Internal exception text is not returned
 
 ## Authorization
 
-Every protected operation calls `authorize(user, action, resource_type, resource=None, case=None)` in `app/authorization/permission_service.py`. The decision checks the active account, the role's rows in `role_permissions`, case assignment or an approved unexpired access grant, and self-approval rules. Administrators are not a shortcut around those checks. They hold an explicit permission set, and system-wide case visibility is a separate policy that still requires `CASE.READ`.
+Every protected operation calls `authorize(user, action, resource_type, resource=None, case=None)` in `app/authorization/permission_service.py`. The decision checks the active account, the role's rows in `role_permissions`, case assignment or an approved unexpired access grant, record ownership, and self-approval rules. The administrator permission set covers users, roles, departments, and the audit log. It does not include case, document, or evidence content.
+
+After migration `0011_align`, the API refuses to start until `APP_DATABASE_URL` points at a login that does not own the tables. Create that role, grant it table access, and run `ALTER ROLE secure_dms BYPASSRLS` so migrations and the seed can still use `DATABASE_URL`. New evidence uploads also require `STORAGE_MASTER_KEY`. `APPROVAL_SIGNING_KEY` is optional; without it an approval is stored as unconfigured.
 
 `GET /api/auth/permissions` is for navigation only. The API does not accept those codes as proof of access.
 
@@ -161,4 +167,4 @@ A case the caller cannot open is omitted from lists and returned as `404` with `
 
 Original evidence is immutable at the application layer. The local folder is not write-once storage and it is not a legal hold system. The API does not replace, overwrite, or delete an original evidence file. Later processing is stored as a derived artifact that points at the original hash. A hash mismatch is recorded and does not change the stored hash.
 
-Document classification is an extra authorization attribute. `HIGHLY_CONFIDENTIAL` and `RESTRICTED` documents are omitted from lists for callers who are not an assigned supervisor, an administrator with case access, or the holder of an approved document-scoped grant. Sealed and archived documents reject ordinary metadata edits. The file hash is SHA-256 of the stored bytes. It is not an evidence seal.
+Document classification is an extra authorization attribute. `HIGHLY_CONFIDENTIAL` and `RESTRICTED` police documents are visible to an assigned police supervisor. Forensic and court records stay with their owning department. Sealed and archived documents reject ordinary metadata edits. A police officer can update only their own police draft. The file hash is SHA-256 of the original bytes. New evidence files are encrypted when `STORAGE_MASTER_KEY` is set. Existing demonstration files remain unencrypted.

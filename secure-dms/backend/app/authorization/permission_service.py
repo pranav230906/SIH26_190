@@ -8,12 +8,19 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, object_session
 
 from app.authorization.permissions import permission_code
+from app.authorization.ownership import (
+    COURT,
+    POLICE,
+    institution_code_for_type,
+    role_institution_code,
+)
 from app.authorization.policies import (
     CASE_SCOPED_RESOURCES,
     ELEVATED_DOCUMENT_CLASSIFICATIONS,
     EXAMINATION_STATUSES,
     IMMUTABLE_DOCUMENT_STATUSES,
     JUDICIAL_ACTIONS,
+    JUDICIAL_RECORD_ACTIONS,
     MUTATING_ACTIONS,
     REVIEW_ACTIONS,
     REVIEW_VISIBLE_STATUSES,
@@ -66,7 +73,8 @@ def authorize(user, action, resource_type, resource=None, case=None) -> Authoriz
         return _deny(DecisionReason.MISSING_PERMISSION)
 
     if role_name == RoleName.JUDICIAL_USER.value and action not in JUDICIAL_ACTIONS:
-        return _deny(DecisionReason.ACTION_NOT_ALLOWED)
+        if not _judicial_record_exception(action, resource_type, resource):
+            return _deny(DecisionReason.ACTION_NOT_ALLOWED)
 
     if requires_case_context(resource_type, action, case):
         if case is None:
@@ -104,6 +112,10 @@ def user_has_case_access(user, case) -> bool:
     role_name = getattr(getattr(user, "role", None), "name", None)
     if role_has_system_case_access(role_name) and _role_has_permission(user, ResourceType.CASE, Action.READ):
         return True
+
+    if role_name == RoleName.POLICE_SUPERVISOR.value and getattr(user, "department_id", None) is not None:
+        if getattr(case, "department_id", None) == user.department_id:
+            return True
 
     assignments = getattr(case, "assignments", None) or []
     if any(item.user_id == user.id and item.active for item in assignments):
@@ -206,18 +218,40 @@ def _has_active_grant(db: Session, user_id, case_id) -> bool:
     return grant is not None
 
 
+def _judicial_record_exception(action: Action, resource_type: ResourceType, resource) -> bool:
+    if action in JUDICIAL_RECORD_ACTIONS and resource_type == ResourceType.DOCUMENT:
+        return institution_code_for_type(getattr(resource, "document_type", None)) == COURT
+    if action in {Action.APPROVE, Action.REJECT} and resource_type == ResourceType.ACCESS_REQUEST:
+        return _request_owner_code(resource) == COURT
+    return False
+
+
 def _document_policy(user, action: Action, document, role_name: str) -> AuthorizationDecision | None:
-    """Classification and sealed-state rules. Role permission and case access are already checked."""
+    """Ownership, classification, and sealed-state rules. Role permission and case access are already checked."""
     status = getattr(document, "status", None)
     if status in IMMUTABLE_DOCUMENT_STATUSES and action in {Action.UPDATE, Action.UPLOAD, Action.DELETE}:
         return _deny(DecisionReason.ACTION_NOT_ALLOWED)
     if action == Action.DELETE and status != DocumentStatus.DRAFT.value:
         return _deny(DecisionReason.ACTION_NOT_ALLOWED)
 
+    owner = institution_code_for_type(getattr(document, "document_type", None))
+    actor = role_institution_code(role_name)
+    if action in {Action.CREATE, Action.UPLOAD} and (owner is None or actor != owner):
+        return _deny(DecisionReason.ACTION_NOT_ALLOWED)
+    if action == Action.UPDATE:
+        owns_draft = (
+            role_name == RoleName.POLICE_OFFICER.value
+            and getattr(document, "created_by", None) == getattr(user, "id", None)
+            and status == DocumentStatus.DRAFT.value
+            and owner == POLICE
+        )
+        if not owns_draft:
+            return _deny(DecisionReason.ACTION_NOT_ALLOWED)
+
     classification = getattr(document, "classification", None)
     gated = {Action.READ, Action.DOWNLOAD, Action.UPDATE, Action.UPLOAD, Action.EXPORT, Action.CREATE}
     if classification in ELEVATED_DOCUMENT_CLASSIFICATIONS and action in gated:
-        if role_has_system_case_access(role_name) or role_name == RoleName.POLICE_SUPERVISOR.value:
+        if role_name == RoleName.POLICE_SUPERVISOR.value and owner == POLICE:
             return None
         if _has_document_grant(user, document, action):
             return None
@@ -254,10 +288,24 @@ def _custody_policy(user, action: Action, resource, role_name: str, resource_typ
     if action == Action.UPLOAD and getattr(resource, "id", None) is not None:
         return _deny(DecisionReason.ACTION_NOT_ALLOWED)
 
+    limited = {Action.READ, Action.DOWNLOAD, Action.VERIFY, Action.EXPORT}
+    if role_name in {RoleName.FORENSIC_EXAMINER.value, RoleName.FORENSIC_REVIEWER.value} and action in limited:
+        if user_has_forensic_evidence_access(user, resource, action):
+            return None
+        return _deny(DecisionReason.RESOURCE_ACCESS_DENIED)
+    if role_name == RoleName.PROSECUTOR.value and action in limited:
+        if _has_resource_grant(user, resource, action, resource_type):
+            return None
+        return _deny(DecisionReason.RESOURCE_ACCESS_DENIED)
+    if role_name == RoleName.JUDICIAL_USER.value and action in limited:
+        if _has_resource_grant(user, resource, action, resource_type) or _in_submitted_package(user, resource):
+            return None
+        return _deny(DecisionReason.RESOURCE_ACCESS_DENIED)
+
     classification = getattr(resource, "classification", None)
     gated = {Action.READ, Action.DOWNLOAD, Action.UPLOAD, Action.EXPORT, Action.CREATE, Action.VERIFY, Action.APPROVE}
     if classification in ELEVATED_DOCUMENT_CLASSIFICATIONS and action in gated:
-        if role_has_system_case_access(role_name) or role_name == RoleName.POLICE_SUPERVISOR.value:
+        if role_name == RoleName.POLICE_SUPERVISOR.value:
             return None
         if _has_resource_grant(user, resource, action, resource_type):
             return None
@@ -271,7 +319,7 @@ def user_has_forensic_evidence_access(user, evidence, action: Action) -> bool:
     """Request-scoped read access. An examiner role alone does not open every evidence item."""
     if action not in {Action.READ, Action.DOWNLOAD, Action.VERIFY}:
         return False
-    evidence_id = getattr(evidence, "id", None)
+    evidence_id = getattr(evidence, "source_evidence_id", None) or getattr(evidence, "id", None)
     if user is None or evidence_id is None:
         return False
     db = object_session(user) or object_session(evidence)
@@ -321,6 +369,58 @@ def _has_resource_grant(user, resource, action: Action, resource_type: ResourceT
         )
     )
     return grant is not None
+
+
+def _request_owner_code(resource) -> str | None:
+    if resource is None:
+        return None
+    resource_type = getattr(resource, "resource_type", None)
+    resource_id = getattr(resource, "resource_id", None)
+    if resource_type == ResourceType.DOCUMENT.value and resource_id is not None:
+        from app.models.document import Document
+
+        db = object_session(resource)
+        document = db.get(Document, resource_id) if db is not None else None
+        if document is not None:
+            return institution_code_for_type(document.document_type)
+    if resource_type == ResourceType.FORENSIC_REPORT.value:
+        from app.authorization.ownership import FORENSIC
+
+        return FORENSIC
+    if resource_type == ResourceType.DERIVED_ARTIFACT.value:
+        from app.authorization.ownership import FORENSIC
+
+        return FORENSIC
+    if resource_type == ResourceType.EVIDENCE.value:
+        return POLICE
+    case = getattr(resource, "case", None)
+    department = getattr(case, "department", None) if case is not None else None
+    return getattr(department, "code", None)
+
+
+def _in_submitted_package(user, resource) -> bool:
+    resource_id = getattr(resource, "id", None)
+    db = object_session(user) or object_session(resource)
+    if db is None or resource_id is None:
+        return False
+    from app.models.court_package import CourtPackage, CourtPackageItem
+
+    evidence_id = resource_id if resource.__class__.__name__ == "Evidence" else getattr(resource, "source_evidence_id", None)
+    artifact_id = resource_id if resource.__class__.__name__ == "DerivedArtifact" else None
+    filters = [CourtPackage.status.in_(("SUBMITTED", "VERIFIED", "MISMATCH"))]
+    item_match = []
+    if evidence_id is not None:
+        item_match.append(CourtPackageItem.evidence_id == evidence_id)
+    if artifact_id is not None:
+        item_match.append(CourtPackageItem.artifact_id == artifact_id)
+    if not item_match:
+        return False
+    row = db.scalar(
+        select(CourtPackageItem.id)
+        .join(CourtPackage, CourtPackage.id == CourtPackageItem.package_id)
+        .where(*filters, or_(*item_match))
+    )
+    return row is not None
 
 
 def _department_blocks(user, case, role_name: str) -> bool:

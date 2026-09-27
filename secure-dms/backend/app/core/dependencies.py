@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session, joinedload
 
 import app.models  # noqa: F401  # Register every mapper before the first query.
@@ -41,6 +41,7 @@ def get_current_user(
     )
     if user is None or not user.is_active:
         raise AppError(401, "authentication_failed", "Authentication failed.")
+    db.execute(text("SELECT set_config('app.user_id', :user_id, false)"), {"user_id": str(user.id)})
     return user
 
 

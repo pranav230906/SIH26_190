@@ -9,6 +9,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.case import Case
+    from app.models.department import Department
     from app.models.document_version import DocumentVersion
     from app.models.user import User
 
@@ -28,6 +29,16 @@ class Document(Base):
     case_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    owner_department_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("departments.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    custodian_user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
     )
     document_number: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -65,6 +76,8 @@ class Document(Base):
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     case: Mapped["Case"] = relationship(back_populates="documents")
+    owner_department: Mapped["Department | None"] = relationship(foreign_keys=[owner_department_id])
+    custodian: Mapped["User | None"] = relationship(foreign_keys=[custodian_user_id])
     creator: Mapped["User"] = relationship(foreign_keys=[created_by])
     approver: Mapped["User | None"] = relationship(foreign_keys=[approved_by])
     versions: Mapped[list["DocumentVersion"]] = relationship(back_populates="document")

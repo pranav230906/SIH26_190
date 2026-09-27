@@ -31,6 +31,9 @@ function titleFor(pathname: string): string {
   if (pathname.startsWith("/audit")) {
     return "Security audit";
   }
+  if (pathname.startsWith("/court-packages")) {
+    return "Court packages";
+  }
   if (pathname.startsWith("/assistant")) {
     return "Case assistant";
   }

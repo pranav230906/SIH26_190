@@ -39,6 +39,7 @@ export function CaseDetailView() {
   const [targetUser, setTargetUser] = useState("");
   const [assignmentType, setAssignmentType] = useState("PRIMARY_OFFICER");
   const [justification, setJustification] = useState("");
+  const [emergency, setEmergency] = useState(false);
   const [resourceType, setResourceType] = useState("EVIDENCE");
   const [requestedAction, setRequestedAction] = useState("READ");
   const [confirm, setConfirm] = useState<null | { title: string; message: string; confirmLabel: string; run: () => Promise<void> }>(null);
@@ -396,7 +397,7 @@ export function CaseDetailView() {
                     {requests.map((item) => (
                       <tr key={item.id} className="border-b border-line last:border-0">
                         <td className="px-5 py-3">{item.requester_username}</td>
-                        <td className="px-5 py-3">{item.resource_type} {item.requested_action}</td>
+                        <td className="px-5 py-3">{item.resource_type} {item.requested_action}{item.access_kind === "EMERGENCY" ? " · 24h" : ""}</td>
                         <td className="px-5 py-3">{item.status}</td>
                         <td className="px-5 py-3">{item.justification}</td>
                       </tr>
@@ -421,10 +422,12 @@ export function CaseDetailView() {
                           resource_type: resourceType,
                           requested_action: requestedAction,
                           justification,
+                          emergency,
                         }),
                       });
                       setRequests((current) => [created, ...(current ?? [])]);
                       setJustification("");
+                      setEmergency(false);
                       setNotice("Access request submitted.");
                     },
                   });
@@ -455,6 +458,10 @@ export function CaseDetailView() {
                 <label className="text-sm">
                   <span className="mb-1 block text-muted">Justification</span>
                   <textarea required minLength={10} value={justification} onChange={(event) => setJustification(event.target.value)} className="min-h-24 w-full rounded-md border border-line px-3 py-2" />
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={emergency} onChange={(event) => setEmergency(event.target.checked)} />
+                  Emergency access, 24 hours, reason required
                 </label>
                 <button type="submit" className="w-fit rounded-md bg-navy px-3 py-2 text-sm text-white">
                   Submit request

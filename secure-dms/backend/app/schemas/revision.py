@@ -34,6 +34,8 @@ class VersionSummary(BaseModel):
     mime_type: str
     file_size: int
     allowed_actions: list[str]
+    seal_algorithm: str | None = None
+    seal_value: str | None = None
 
 
 class VersionDetail(VersionSummary):

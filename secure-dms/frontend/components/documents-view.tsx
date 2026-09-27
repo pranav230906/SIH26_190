@@ -4,31 +4,20 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { DocumentClassificationBadge, DocumentStatusBadge, DocumentTypeBadge } from "@/components/document-badges";
-import { can, usePermissions } from "@/components/session-context";
+import { can, usePermissions, useSession } from "@/components/session-context";
 import { ApiClientError, apiFetch, apiFetchBlob, uploadWithProgress } from "@/lib/api";
 import {
   documentClassificationLabel,
   documentStatusLabel,
+  creatableDocumentTypes,
   documentTypeLabel,
   formatDay,
   formatFileSize,
+  SEARCH_DOCUMENT_TYPES,
 } from "@/lib/format";
 import type { CaseDetail, DocumentDetail, DocumentListResponse, DocumentSummary } from "@/lib/types";
 
-const DOCUMENT_TYPES = [
-  "FIR",
-  "POLICE_REPORT",
-  "INVESTIGATION_RECORD",
-  "WITNESS_STATEMENT",
-  "CHARGE_SHEET",
-  "COURT_FILING",
-  "EVIDENCE_RECORD",
-  "FORENSIC_REPORT",
-  "LEGAL_NOTICE",
-  "JUDGMENT",
-  "CASE_DIARY",
-  "OTHER",
-];
+const DOCUMENT_TYPES = SEARCH_DOCUMENT_TYPES;
 
 const CLASSIFICATIONS = ["INTERNAL", "CONFIDENTIAL", "HIGHLY_CONFIDENTIAL", "RESTRICTED"];
 const STATUSES = ["DRAFT", "UNDER_REVIEW", "APPROVED", "SEALED", "ARCHIVED"];
@@ -45,7 +34,9 @@ const STATUS_ACTION: Record<string, string> = {
 export function DocumentsView() {
   const params = useParams<{ id: string }>();
   const caseId = params.id;
+  const session = useSession();
   const { permissions } = usePermissions();
+  const uploadTypes = creatableDocumentTypes(session.role.name);
   const [caseRecord, setCaseRecord] = useState<CaseDetail | null>(null);
   const [documents, setDocuments] = useState<DocumentListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -237,6 +228,7 @@ export function DocumentsView() {
         <UploadDialog
           caseId={caseId}
           maxMb={documents.max_upload_size_mb}
+          types={uploadTypes}
           onClose={() => setUploadOpen(false)}
           onUploaded={async (title, notice) => {
             setUploadOpen(false);
@@ -354,19 +346,21 @@ function Select({
 function UploadDialog({
   caseId,
   maxMb,
+  types,
   onClose,
   onUploaded,
   onError,
 }: {
   caseId: string;
   maxMb: number;
+  types: string[];
   onClose: () => void;
   onUploaded: (title: string, notice: string | null) => Promise<void>;
   onError: (message: string) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [documentType, setDocumentType] = useState("FIR");
+  const [documentType, setDocumentType] = useState(types[0] ?? "FIR");
   const [classification, setClassification] = useState("INTERNAL");
   const [description, setDescription] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
@@ -428,7 +422,7 @@ function UploadDialog({
         <label className="block text-sm">
           Document type
           <select value={documentType} onChange={(event) => setDocumentType(event.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2">
-            {DOCUMENT_TYPES.map((option) => (
+            {types.map((option) => (
               <option key={option} value={option}>
                 {documentTypeLabel(option)}
               </option>

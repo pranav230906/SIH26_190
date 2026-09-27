@@ -58,6 +58,8 @@ class DocumentVersion(Base):
     is_official: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     approved_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    seal_algorithm: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    seal_value: Mapped[str | None] = mapped_column(String(128), nullable=True)
     submitted_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_comment: Mapped[str | None] = mapped_column(Text, nullable=True)

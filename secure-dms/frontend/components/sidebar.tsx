@@ -111,7 +111,7 @@ function navigationFor(permissions: string[], role: string): NavItem[] {
     items.push({ href: "/audit", label: "Audit", enabled: true });
   }
   if (can(permissions, "COURT_PACKAGE.READ")) {
-    items.push({ href: "/court-packages", label: "Court packages", enabled: false });
+    items.push({ href: "/court-packages", label: "Court packages", enabled: true });
   }
   return items;
 }

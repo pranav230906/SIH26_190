@@ -25,6 +25,8 @@ MUTATING_ACTIONS = {
 REVIEW_ACTIONS = {Action.APPROVE, Action.REJECT}
 
 JUDICIAL_ACTIONS = {Action.READ, Action.VERIFY}
+JUDICIAL_RECORD_ACTIONS = {Action.CREATE, Action.UPLOAD}
+EMERGENCY_GRANT_HOURS = 24
 
 REQUESTABLE_ACTIONS = {
     Action.READ,
@@ -101,12 +103,15 @@ def requires_case_context(resource_type: ResourceType, action: Action, case) -> 
     if resource_type == ResourceType.CASE and action == Action.ASSIGN and case is None:
         return False
     if resource_type == ResourceType.ACCESS_REQUEST and case is None and action in {
+        Action.CREATE,
         Action.READ,
         Action.APPROVE,
         Action.REJECT,
     }:
         return False
     if resource_type == ResourceType.FORENSIC_REPORT and case is None and action in {Action.READ, Action.REVIEW}:
+        return False
+    if resource_type == ResourceType.COURT_PACKAGE and case is None and action == Action.READ:
         return False
     return True
 

@@ -11,7 +11,13 @@ from app.core.database import get_db
 from app.core.dependencies import require_authenticated_user
 from app.models.user import User
 from app.schemas.common import ErrorResponse
-from app.schemas.document import DocumentDetail, DocumentListResponse, DocumentStatusUpdate, DocumentUpdate
+from app.schemas.document import (
+    DocumentDetail,
+    DocumentListResponse,
+    DocumentStatusUpdate,
+    DocumentTransfer,
+    DocumentUpdate,
+)
 from app.schemas.search import OcrStatusResponse, PageTextResponse
 from app.services.document_service import (
     change_status,
@@ -19,6 +25,7 @@ from app.services.document_service import (
     get_document,
     list_documents,
     open_for_download,
+    transfer_document,
     update_document,
     upload_document,
 )
@@ -143,6 +150,16 @@ def preview_document(
 ) -> FileResponse:
     filename, mime_type, path = open_for_download(db, current_user, document_id, inline=True)
     return _file_response(filename, mime_type, path, inline=True)
+
+
+@router.post("/documents/{document_id}/transfer-custody", response_model=DocumentDetail, responses=_ERRORS)
+def transfer_document_custody(
+    document_id: uuid.UUID,
+    payload: DocumentTransfer,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+) -> DocumentDetail:
+    return transfer_document(db, current_user, document_id, payload)
 
 
 @router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT, responses=_ERRORS)
