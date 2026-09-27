@@ -107,7 +107,7 @@ def upload_document(
 ) -> DocumentDetail:
     case = require_case(db, user, case_key, Action.READ)
     content = _read_limited(upload)
-    original_name, extension, mime = validate_upload(
+    original_name, extension, mime, scan_result = validate_upload(
         upload.filename,
         upload.content_type,
         content,
@@ -169,6 +169,8 @@ def upload_document(
     _audit("DOCUMENT_UPLOADED", user_id=user.id, case_id=stored.case_id, document_id=stored.id)
     detail = _detail(user, stored)
     detail.search_notice = notice
+    if scan_result == "SUSPICIOUS":
+        detail.security_scan_message = "Demo File Security Check: SUSPICIOUS content detected. File stored."
     return detail
 
 

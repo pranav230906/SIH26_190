@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ApiClientError, apiFetch, uploadWithProgress } from "@/lib/api";
 import { artifactTypeLabel, evidenceTypeLabel, forensicStatusLabel, forensicTypeLabel, formatTimestamp } from "@/lib/format";
-import type { DirectoryUser, ForensicRequestDetail } from "@/lib/types";
+import type { ArtifactSummary, DirectoryUser, ForensicRequestDetail } from "@/lib/types";
 
 const ARTIFACT_TYPES = ["FORENSIC_OUTPUT", "VIDEO_CLIP", "IMAGE_CROP", "AUDIO_EXTRACTION", "ANNOTATION", "TEXT_EXTRACTION", "OTHER"];
 const FINDING_TYPES = ["OBSERVATION", "IDENTIFICATION", "CORRELATION", "ANOMALY", "TECHNICAL_FINDING", "OTHER"];
@@ -188,9 +188,9 @@ export function ForensicRequestView() {
         <ArtifactForm
           request={record}
           onClose={() => setArtifactOpen(false)}
-          onCreated={async () => {
+          onCreated={async (scanNotice) => {
             setArtifactOpen(false);
-            setNotice("Derived artifact stored. The original evidence was not changed.");
+            setNotice(scanNotice ? `Derived artifact stored. ${scanNotice}` : "Derived artifact stored. The original evidence was not changed.");
             await reload();
           }}
           onError={setError}
@@ -220,7 +220,7 @@ function ArtifactForm({
 }: {
   request: ForensicRequestDetail;
   onClose: () => void;
-  onCreated: () => Promise<void>;
+  onCreated: (notice: string | null) => Promise<void>;
   onError: (message: string) => void;
 }) {
   const [evidenceId, setEvidenceId] = useState(request.evidence[0]?.id ?? "");
@@ -244,8 +244,8 @@ function ArtifactForm({
     form.set("processing_description", processing);
     setBusy(true);
     try {
-      await uploadWithProgress(`/api/forensic-requests/${request.id}/artifacts`, form, () => undefined);
-      await onCreated();
+      const created = await uploadWithProgress<ArtifactSummary>(`/api/forensic-requests/${request.id}/artifacts`, form, () => undefined);
+      await onCreated(created.security_scan_message ?? null);
     } catch (caught) {
       onError(caught instanceof ApiClientError ? caught.message : "The artifact was refused.");
     } finally {

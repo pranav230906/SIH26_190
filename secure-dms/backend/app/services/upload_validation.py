@@ -4,6 +4,8 @@ import hashlib
 import re
 from pathlib import Path
 
+from app.core.database import SessionLocal
+from app.models.security_scan import FileSecurityScan
 from app.core.exceptions import AppError
 
 ALLOWED_TYPES: dict[str, frozenset[str]] = {
@@ -49,12 +51,44 @@ REJECTED_EXTENSIONS = frozenset({
 _NAME = re.compile(r"^[^\\/:*?\"<>|\r\n]{1,200}$")
 
 
-def validate_evidence_upload(filename: str | None, content_type: str | None, content: bytes, max_bytes: int) -> tuple[str, str, str]:
+def validate_evidence_upload(filename: str | None, content_type: str | None, content: bytes, max_bytes: int) -> tuple[str, str, str, str]:
     return _validate(filename, content_type, content, max_bytes, EVIDENCE_ALLOWED_TYPES)
 
 
-def validate_upload(filename: str | None, content_type: str | None, content: bytes, max_bytes: int) -> tuple[str, str, str]:
+def validate_upload(filename: str | None, content_type: str | None, content: bytes, max_bytes: int) -> tuple[str, str, str, str]:
     return _validate(filename, content_type, content, max_bytes, ALLOWED_TYPES)
+
+
+def sha256_hex(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _demo_security_scan(content: bytes, file_hash: str) -> str:
+    """Demo Security Scan for prototyping purposes."""
+    lower_content = content.lower()
+    status = "SAFE"
+    message = None
+    if b"malware_demo_block" in lower_content or b"eicar" in lower_content:
+        status = "MALICIOUS"
+        message = "File blocked by Demo Security Scan: Malicious content detected."
+    elif b"suspicious_demo_flag" in lower_content or b"suspicious" in lower_content:
+        status = "SUSPICIOUS"
+        message = "Demo File Security Check: SUSPICIOUS content detected."
+        
+    with SessionLocal() as db:
+        existing = db.query(FileSecurityScan).filter_by(file_hash=file_hash).first()
+        if not existing:
+            scan = FileSecurityScan(
+                file_hash=file_hash,
+                hash_algorithm="SHA-256",
+                status=status,
+                scanner_name="DemoScanner/1.0",
+                message=message
+            )
+            db.add(scan)
+            db.commit()
+            
+    return status
 
 
 def _validate(
@@ -63,7 +97,7 @@ def _validate(
     content: bytes,
     max_bytes: int,
     allowed: dict[str, frozenset[str]],
-) -> tuple[str, str, str]:
+) -> tuple[str, str, str, str]:
     original = _safe_original_name(filename)
     extension = Path(original).suffix.lower()
     if extension in REJECTED_EXTENSIONS or extension not in allowed:
@@ -89,11 +123,12 @@ def _validate(
         raise AppError(422, "validation_error", "The file is not a valid WAV.")
     if extension == ".webm" and not content.startswith(b"\x1a\x45\xdf\xa3"):
         raise AppError(422, "validation_error", "The file is not a valid WebM.")
-    return original, extension, mime
-
-
-def sha256_hex(content: bytes) -> str:
-    return hashlib.sha256(content).hexdigest()
+    file_hash = sha256_hex(content)
+    scan_result = _demo_security_scan(content, file_hash)
+    if scan_result == "MALICIOUS":
+        raise AppError(400, "security_blocked", "File blocked by Demo Security Scan: Malicious content detected.")
+    
+    return original, extension, mime, scan_result
 
 
 def _safe_original_name(filename: str | None) -> str:

@@ -35,7 +35,7 @@ _app_engine = None
 _app_sessionmaker = None
 
 
-def _clear_app_user(dbapi_connection, _connection_record) -> None:
+def _clear_app_user(dbapi_connection, connection_record, connection_proxy=None, *args, **kwargs) -> None:
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute("SELECT set_config('app.user_id', '', false)")

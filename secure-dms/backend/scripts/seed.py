@@ -7,7 +7,7 @@ Do not use these credentials outside a local demonstration.
 import app.models  # noqa: F401
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.authorization.roles import ROLE_PERMISSIONS
@@ -73,41 +73,40 @@ DEPARTMENTS: list[tuple[str, str]] = [
 ]
 
 USERS: list[tuple[str, str, str, RoleName, str]] = [
-    ("admin1", "Demo Administrator", "admin1@example.com", RoleName.ADMIN, "ADM"),
-    ("police1", "Demo Police Officer", "police1@example.com", RoleName.POLICE_OFFICER, "POL"),
-    ("supervisor1", "Demo Police Supervisor", "supervisor1@example.com", RoleName.POLICE_SUPERVISOR, "POL"),
-    ("forensic1", "Demo Forensic Examiner", "forensic1@example.com", RoleName.FORENSIC_EXAMINER, "FLS"),
-    ("forensic_reviewer1", "Demo Forensic Reviewer", "forensic_reviewer1@example.com", RoleName.FORENSIC_REVIEWER, "FLS"),
-    ("prosecutor1", "Demo Prosecutor", "prosecutor1@example.com", RoleName.PROSECUTOR, "PRS"),
-    ("court1", "Demo Judicial User", "court1@example.com", RoleName.JUDICIAL_USER, "JUD"),
+    ("demo_admin", "Demo Administrator", "demo_admin@example.com", RoleName.ADMIN, "ADM"),
+    ("officer1", "Rahul Sharma", "officer1@example.com", RoleName.POLICE_OFFICER, "POL"),
+    ("officer2", "Amit Patil", "officer2@example.com", RoleName.POLICE_OFFICER, "POL"),
+    ("officer3", "Priya Deshmukh", "officer3@example.com", RoleName.POLICE_OFFICER, "POL"),
+    ("officer4", "Karan Joshi", "officer4@example.com", RoleName.POLICE_OFFICER, "POL"),
+    ("supervisor1", "Arjun Mehta", "supervisor1@example.com", RoleName.POLICE_SUPERVISOR, "POL"),
+    ("supervisor2", "Neha Kulkarni", "supervisor2@example.com", RoleName.POLICE_SUPERVISOR, "POL"),
+    ("forensic1", "Dr. Riya Shah", "forensic1@example.com", RoleName.FORENSIC_EXAMINER, "FLS"),
+    ("forensic_reviewer1", "Dr. Anil Rao", "forensic_reviewer1@example.com", RoleName.FORENSIC_REVIEWER, "FLS"),
+    ("prosecutor1", "Kavita Nair", "prosecutor1@example.com", RoleName.PROSECUTOR, "PRS"),
+    ("judicial1", "Demo Judicial User", "judicial1@example.com", RoleName.JUDICIAL_USER, "JUD"),
 ]
 
 CASE_NUMBER = "CASE-2026-001"
 CASE_TITLE = "Vehicle Theft Investigation"
-CASE_DESCRIPTION = (
-    "Fictional demonstration case. A privately owned vehicle was reported stolen from a "
-    "public parking area. No real persons, registration numbers, or locations are described. "
-    "The record exists so assignment and access checks can be exercised in this prototype."
-)
+CASE_DESCRIPTION = "Fictional demonstration case. A privately owned vehicle was reported stolen from a public parking area."
 
 SECOND_CASE_NUMBER = "CASE-2026-002"
 SECOND_CASE_TITLE = "Cyber Fraud Investigation"
-SECOND_CASE_DESCRIPTION = (
-    "Fictional demonstration case. A private organisation reported unauthorised transfers "
-    "from a demonstration account. No real people, account numbers, or systems are described."
-)
+SECOND_CASE_DESCRIPTION = "Fictional demonstration case. Cyber fraud investigation."
 
 THIRD_CASE_NUMBER = "CASE-2026-003"
 THIRD_CASE_TITLE = "Burglary Investigation"
-THIRD_CASE_DESCRIPTION = (
-    "Fictional demonstration case. A vacant demonstration property was reported entered "
-    "without permission. No real addresses or occupants are described."
-)
+THIRD_CASE_DESCRIPTION = "Fictional demonstration case. A vacant demonstration property was reported entered without permission."
+
+FOURTH_CASE_NUMBER = "CASE-2026-004"
+FOURTH_CASE_TITLE = "Digital Evidence Investigation"
+FOURTH_CASE_DESCRIPTION = "Fictional demonstration case. Digital evidence extraction and review."
 
 CASES: list[tuple[str, str, str, CaseStatus]] = [
     (CASE_NUMBER, CASE_TITLE, CASE_DESCRIPTION, CaseStatus.UNDER_INVESTIGATION),
     (SECOND_CASE_NUMBER, SECOND_CASE_TITLE, SECOND_CASE_DESCRIPTION, CaseStatus.ACTIVE),
     (THIRD_CASE_NUMBER, THIRD_CASE_TITLE, THIRD_CASE_DESCRIPTION, CaseStatus.UNDER_REVIEW),
+    (FOURTH_CASE_NUMBER, FOURTH_CASE_TITLE, FOURTH_CASE_DESCRIPTION, CaseStatus.CLOSED),
 ]
 
 ASSIGNMENT_LABELS = {
@@ -120,21 +119,30 @@ ASSIGNMENT_LABELS = {
 }
 
 ASSIGNMENTS: list[tuple[str, str, AssignmentType]] = [
-    (CASE_NUMBER, "police1", AssignmentType.PRIMARY_OFFICER),
+    (CASE_NUMBER, "officer1", AssignmentType.PRIMARY_OFFICER),
     (CASE_NUMBER, "supervisor1", AssignmentType.SUPERVISOR),
     (CASE_NUMBER, "forensic1", AssignmentType.FORENSIC_EXAMINER),
     (CASE_NUMBER, "forensic_reviewer1", AssignmentType.FORENSIC_REVIEWER),
     (CASE_NUMBER, "prosecutor1", AssignmentType.PROSECUTOR),
-    (CASE_NUMBER, "court1", AssignmentType.JUDICIAL_ACCESS),
-    (SECOND_CASE_NUMBER, "police1", AssignmentType.PRIMARY_OFFICER),
+    (CASE_NUMBER, "judicial1", AssignmentType.JUDICIAL_ACCESS),
+    (SECOND_CASE_NUMBER, "officer2", AssignmentType.PRIMARY_OFFICER),
     (SECOND_CASE_NUMBER, "supervisor1", AssignmentType.SUPERVISOR),
-    (THIRD_CASE_NUMBER, "supervisor1", AssignmentType.SUPERVISOR),
+    (SECOND_CASE_NUMBER, "forensic1", AssignmentType.FORENSIC_EXAMINER),
+    (SECOND_CASE_NUMBER, "prosecutor1", AssignmentType.PROSECUTOR),
+    (THIRD_CASE_NUMBER, "officer3", AssignmentType.PRIMARY_OFFICER),
+    (THIRD_CASE_NUMBER, "supervisor2", AssignmentType.SUPERVISOR),
+    (THIRD_CASE_NUMBER, "forensic1", AssignmentType.FORENSIC_EXAMINER),
+    (THIRD_CASE_NUMBER, "prosecutor1", AssignmentType.PROSECUTOR),
+    (FOURTH_CASE_NUMBER, "officer4", AssignmentType.PRIMARY_OFFICER),
+    (FOURTH_CASE_NUMBER, "supervisor2", AssignmentType.SUPERVISOR),
+    (FOURTH_CASE_NUMBER, "forensic1", AssignmentType.FORENSIC_EXAMINER),
 ]
 
 
 def seed() -> None:
     db = SessionLocal()
     try:
+        db.execute(text("SET row_security = off"))
         roles = _ensure_roles(db)
         departments = _ensure_departments(db)
         _ensure_permissions(db, roles)
@@ -163,6 +171,8 @@ def seed() -> None:
         _ensure_search_demo(db, cases, users)
         db.commit()
         _index_search_corpus(db)
+        from scripts.seed_demo_gaps import seed_gaps
+        seed_gaps()
     except Exception:
         db.rollback()
         raise
@@ -223,6 +233,7 @@ def _ensure_users(
                 role_id=roles[role_name.value].id,
                 department_id=departments[department_code].id,
                 is_active=True,
+                is_demo=True,
             )
             db.add(user)
         else:
@@ -232,6 +243,7 @@ def _ensure_users(
             user.role_id = roles[role_name.value].id
             user.department_id = departments[department_code].id
             user.is_active = True
+            user.is_demo = True
         users[username] = user
     db.flush()
     return users
@@ -288,6 +300,7 @@ def _ensure_case(
             classification=Classification.RESTRICTED.value,
             department_id=department.id,
             created_by=creator.id,
+            is_demo=True,
         )
         db.add(case)
         db.flush()
@@ -299,6 +312,7 @@ def _ensure_case(
     case.status = status.value
     case.classification = Classification.RESTRICTED.value
     case.department_id = department.id
+    case.is_demo = True
     return case
 
 
@@ -322,7 +336,7 @@ def _retire_legacy_assignments(db: Session) -> None:
 
 
 def _ensure_assignments(db: Session, cases: dict[str, Case], users: dict[str, User]) -> None:
-    assigner = users["admin1"]
+    assigner = users["demo_admin"]
     for case_number, username, assignment_type in ASSIGNMENTS:
         case = cases[case_number]
         existing = db.scalar(
@@ -425,7 +439,7 @@ def _ensure_documents(db: Session, cases: dict[str, Case], users: dict[str, User
             DocumentStatus.APPROVED,
             "fictional-fir.pdf",
             _demo_pdf("Fictional first information note. Not a real report."),
-            users["police1"],
+            users["officer1"],
             users["supervisor1"],
             stamped,
             None,
@@ -439,7 +453,7 @@ def _ensure_documents(db: Session, cases: dict[str, Case], users: dict[str, User
             DocumentStatus.DRAFT,
             "fictional-patrol-note.txt",
             b"Fictional patrol note. This draft is not an official record.\n",
-            users["police1"],
+            users["officer1"],
             None,
             None,
             None,
@@ -453,7 +467,7 @@ def _ensure_documents(db: Session, cases: dict[str, Case], users: dict[str, User
             DocumentStatus.UNDER_REVIEW,
             "fictional-statement.txt",
             b"Fictional statement summary. No real witness is identified.\n",
-            users["police1"],
+            users["officer1"],
             None,
             None,
             None,
@@ -468,7 +482,7 @@ def _ensure_documents(db: Session, cases: dict[str, Case], users: dict[str, User
             "fictional-investigation.txt",
             b"Fictional investigation working record. Not a real case file.\n",
             users["supervisor1"],
-            users["admin1"],
+            users["demo_admin"],
             stamped,
             None,
         ),
@@ -481,7 +495,7 @@ def _ensure_documents(db: Session, cases: dict[str, Case], users: dict[str, User
             DocumentStatus.SEALED,
             "fictional-lab-summary.pdf",
             _demo_pdf("Fictional laboratory summary. Not a real forensic report."),
-            users["police1"],
+            users["officer1"],
             users["supervisor1"],
             stamped,
             stamped,
@@ -569,7 +583,7 @@ def _ensure_revision_demo(db: Session, cases: dict[str, Case], users: dict[str, 
     if case is None:
         return
     number = "DOC-2026-000006"
-    police = users["police1"]
+    police = users["officer1"]
     supervisor = users["supervisor1"]
     v1_text = b"The suspect entered the building at 21:30. The courtyard was empty.\n"
     v2_text = b"The suspect entered the building at approximately 21:45. The courtyard was empty.\n"
@@ -723,7 +737,7 @@ def _ensure_evidence(db: Session, cases: dict[str, Case], users: dict[str, User]
             "fictional-courtyard.png",
             _demo_png(),
             "image/png",
-            users["police1"],
+            users["officer1"],
             None,
         ),
         (
@@ -736,7 +750,7 @@ def _ensure_evidence(db: Session, cases: dict[str, Case], users: dict[str, User]
             "fictional-tone.wav",
             _demo_wav(),
             "audio/wav",
-            users["police1"],
+            users["officer1"],
             None,
         ),
         (
@@ -749,7 +763,7 @@ def _ensure_evidence(db: Session, cases: dict[str, Case], users: dict[str, User]
             "fictional-roadside.mp4",
             _demo_mp4(),
             "video/mp4",
-            users["police1"],
+            users["officer1"],
             stamped,
         ),
     ]
@@ -775,6 +789,7 @@ def _ensure_evidence(db: Session, cases: dict[str, Case], users: dict[str, User]
                 sha256_hash=sha256_hex(content),
                 hash_algorithm="SHA-256",
                 created_by=creator.id,
+                custodian_user_id=creator.id,
                 sealed_at=sealed_at,
             )
             db.add(existing)
@@ -882,7 +897,7 @@ def _ensure_forensic_requests(db: Session, cases: dict[str, Case], users: dict[s
     audio = db.scalar(select(Evidence).where(Evidence.case_id == case.id, Evidence.evidence_number == "EVD-2026-000002"))
     if photo is None or audio is None:
         return
-    police = users["police1"]
+    police = users["officer1"]
     supervisor = users["supervisor1"]
     examiner = users["forensic1"]
     video = _ensure_forensic_request(
@@ -1090,7 +1105,7 @@ def _ensure_search_demo(db: Session, cases: dict[str, Case], users: dict[str, Us
     isolated = cases.get("CASE-2026-003")
     if primary is None or isolated is None:
         return
-    officer = users["police1"]
+    officer = users["officer1"]
     supervisor = users["supervisor1"]
     stamped = datetime(2026, 9, 26, 16, 0, tzinfo=timezone.utc)
     samples = [

@@ -38,6 +38,7 @@ class EvidenceDetail(EvidenceSummary):
     last_integrity_status: str | None
     custodian_user_id: uuid.UUID | None = None
     custodian_name: str | None = None
+    security_scan_message: str | None = None
 
 
 class EvidenceListResponse(BaseModel):
@@ -77,6 +78,7 @@ class ArtifactSummary(BaseModel):
     hash_algorithm: str
     created_by_name: str
     created_at: datetime
+    security_scan_message: str | None = None
 
 
 class ProvenanceNode(BaseModel):

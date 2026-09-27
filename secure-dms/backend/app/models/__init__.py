@@ -23,6 +23,7 @@ from app.models.permission import Permission, RolePermission
 from app.models.rag import RagCitation, RagConversation, RagMessage
 from app.models.refresh_token import RefreshToken
 from app.models.search import DocumentIndexStatus, DocumentText, SearchChunk
+from app.models.security_scan import FileSecurityScan
 from app.models.role import Role
 from app.models.user import User
 
@@ -44,6 +45,7 @@ __all__ = [
     "DocumentVersion",
     "Evidence",
     "EvidenceIntegrityEvent",
+    "FileSecurityScan",
     "Permission",
     "RagCitation",
     "RagConversation",

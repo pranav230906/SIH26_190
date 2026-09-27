@@ -85,7 +85,7 @@ def create_revision(db: Session, user: User, document_id: uuid.UUID, upload: Upl
     if len(summary) < 10:
         raise AppError(422, "validation_error", "Describe what changed in this revision.")
     content = _read_limited(upload)
-    original_name, extension, mime = validate_upload(
+    original_name, extension, mime, scan_result = validate_upload(
         upload.filename,
         upload.content_type,
         content,
@@ -145,7 +145,10 @@ def create_revision(db: Session, user: User, document_id: uuid.UUID, upload: Upl
         metadata={"version_label": stored.version_label},
     )
     _index_after_revision(db, stored.document)
-    return _detail(user, stored)
+    detail = _detail(user, stored)
+    if scan_result == "SUSPICIOUS":
+        detail.security_scan_message = "Demo File Security Check: SUSPICIOUS content detected. Revision stored."
+    return detail
 
 
 def attach_initial_version(db: Session, document: Document, user: User) -> None:

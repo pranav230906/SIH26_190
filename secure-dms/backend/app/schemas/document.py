@@ -42,6 +42,7 @@ class DocumentDetail(DocumentSummary):
     owner_department_name: str | None = None
     custodian_user_id: uuid.UUID | None = None
     custodian_name: str | None = None
+    security_scan_message: str | None = None
     allowed_actions: list[str] = []
 
 

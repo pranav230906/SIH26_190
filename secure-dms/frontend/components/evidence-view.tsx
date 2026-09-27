@@ -169,9 +169,9 @@ export function EvidenceView() {
           caseId={caseId}
           maxMb={evidence.max_upload_size_mb}
           onClose={() => setUploadOpen(false)}
-          onUploaded={async (title) => {
+          onUploaded={async (title, scanNotice) => {
             setUploadOpen(false);
-            setNotice(`${title} was stored as original evidence.`);
+            setNotice(scanNotice ? `${title} was stored. ${scanNotice}` : `${title} was stored as original evidence.`);
             await load();
           }}
           onError={setError}
@@ -217,7 +217,7 @@ function UploadEvidence({
   caseId: string;
   maxMb: number;
   onClose: () => void;
-  onUploaded: (title: string) => Promise<void>;
+  onUploaded: (title: string, notice: string | null) => Promise<void>;
   onError: (message: string) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -242,7 +242,8 @@ function UploadEvidence({
     if (description.trim()) form.set("description", description.trim());
     try {
       const created = await uploadWithProgress<EvidenceDetail>(`/api/cases/${caseId}/evidence`, form, setProgress);
-      await onUploaded(created.title);
+      let noticeMessage = created.security_scan_message ?? null;
+      await onUploaded(created.title, noticeMessage);
     } catch (caught) {
       onError(messageFrom(caught));
       setBusy(false);

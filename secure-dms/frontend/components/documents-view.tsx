@@ -390,7 +390,11 @@ function UploadDialog({
     }
     try {
       const created = await uploadWithProgress<DocumentDetail>(`/api/cases/${caseId}/documents`, form, setProgress);
-      await onUploaded(created.title, created.search_notice ?? null);
+      let noticeMessage = created.search_notice ?? "";
+      if (created.security_scan_message) {
+          noticeMessage = (noticeMessage ? noticeMessage + " " : "") + created.security_scan_message;
+      }
+      await onUploaded(created.title, noticeMessage || null);
     } catch (caught) {
       onError(messageFrom(caught));
       setBusy(false);

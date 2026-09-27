@@ -21,6 +21,8 @@ from app.schemas.common import ErrorResponse
 from app.services.access_request_service import create_request, list_case_requests
 from app.services.assignment_service import create_assignment, deactivate_assignment, list_assignments
 from app.services.case_service import create_case, get_case, list_cases, update_case
+from app.schemas.graph import GraphResponse
+from app.services.graph_service import get_relationship_graph
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
 
@@ -145,3 +147,27 @@ def add_case_access_request(
     current_user: User = Depends(require_authenticated_user),
 ) -> AccessRequestRead:
     return create_request(db, current_user, case_key, payload)
+
+
+@router.get("/{case_key}/relationship-graph", response_model=GraphResponse, responses=_CASE_ERRORS)
+def read_case_relationship_graph(
+    case_key: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+) -> GraphResponse:
+    from app.services.audit_service import record_audit_event
+    from app.models.case import Case
+    from app.services.case_service import db_case
+    case = db_case(db, case_key)
+    if case:
+        record_audit_event(
+            db,
+            user=current_user,
+            event_type="EVIDENCE_GRAPH_VIEWED",
+            severity="INFO",
+            case_id=case.id,
+            description="Viewed evidence relationship graph.",
+            ip_address="",
+            user_agent=""
+        )
+    return get_relationship_graph(db, current_user, case_key)

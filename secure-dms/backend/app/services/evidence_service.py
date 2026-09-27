@@ -115,7 +115,7 @@ def upload_evidence(
 ) -> EvidenceDetail:
     case = require_case(db, user, case_key, Action.READ)
     content = _read_limited(upload)
-    original_name, extension, mime = validate_evidence_upload(
+    original_name, extension, mime, scan_result = validate_evidence_upload(
         upload.filename,
         upload.content_type,
         content,
@@ -178,7 +178,10 @@ def upload_evidence(
         raise AppError(500, "internal_error", "An unexpected error occurred.")
     _index_evidence_quietly(db, stored)
     _audit("EVIDENCE_UPLOADED", user_id=user.id, case_id=stored.case_id, evidence_id=stored.id)
-    return _detail(db, user, stored)
+    detail = _detail(db, user, stored)
+    if scan_result == "SUSPICIOUS":
+        detail.security_scan_message = "Demo File Security Check: SUSPICIOUS content detected. Evidence stored."
+    return detail
 
 
 def verify_status(db: Session, user: User, evidence_id: uuid.UUID) -> EvidenceDetail:
@@ -444,7 +447,7 @@ def _create_artifact(
     if len(clean_title) < 3 or len(clean_title) > 200:
         raise AppError(422, "validation_error", "Title must be between 3 and 200 characters.")
     content = _read_limited(upload)
-    original_name, extension, mime = validate_evidence_upload(
+    original_name, extension, mime, scan_result = validate_evidence_upload(
         upload.filename,
         upload.content_type,
         content,
@@ -517,7 +520,10 @@ def _create_artifact(
         evidence_id=stored.source_evidence_id,
         metadata={"artifact_id": str(stored.id)},
     )
-    return _artifact_summary(stored)
+    summary = _artifact_summary(stored)
+    if scan_result == "SUSPICIOUS":
+        summary.security_scan_message = "Demo File Security Check: SUSPICIOUS content detected. Artifact stored."
+    return summary
 
 
 def _store_original(case_number: str, extension: str, content: bytes, digest: str) -> tuple[str, str, bool]:

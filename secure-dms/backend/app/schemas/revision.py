@@ -36,6 +36,7 @@ class VersionSummary(BaseModel):
     allowed_actions: list[str]
     seal_algorithm: str | None = None
     seal_value: str | None = None
+    security_scan_message: str | None = None
 
 
 class VersionDetail(VersionSummary):

@@ -111,7 +111,7 @@ _DOCUMENT_SUFFIXES = {
     ".md",
 }
 
-_EVIDENCE_SUFFIXES = _DOCUMENT_SUFFIXES | {".mp4", ".webm", ".wav"}
+_EVIDENCE_SUFFIXES = _DOCUMENT_SUFFIXES | {".mp4", ".webm", ".wav", ".img", ".pcap", ".zip"}
 
 
 def _require_case_number(value: str) -> str:

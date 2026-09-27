@@ -102,9 +102,9 @@ export function DocumentRevisions({ documentId, locked }: { documentId: string; 
         <RevisionForm
           documentId={documentId}
           onClose={() => setCreating(false)}
-          onCreated={async (created) => {
+          onCreated={async (created, scanNotice) => {
             setCreating(false);
-            setNotice(`${created.version_label} saved as a draft. It is not official.`);
+            setNotice(scanNotice ? `${created.version_label} saved as draft. ${scanNotice}` : `${created.version_label} saved as a draft. It is not official.`);
             await reload();
             await openVersion(created.id);
           }}
@@ -229,7 +229,7 @@ function RevisionForm({
 }: {
   documentId: string;
   onClose: () => void;
-  onCreated: (version: DocumentVersionDetail) => Promise<void>;
+  onCreated: (version: DocumentVersionDetail, notice: string | null) => Promise<void>;
   onError: (message: string) => void;
 }) {
   const [summary, setSummary] = useState("");
@@ -248,7 +248,7 @@ function RevisionForm({
     setBusy(true);
     try {
       const created = await uploadWithProgress<DocumentVersionDetail>(`/api/documents/${documentId}/revisions`, form, () => undefined);
-      await onCreated(created);
+      await onCreated(created, created.security_scan_message ?? null);
     } catch (caught) {
       onError(caught instanceof ApiClientError ? caught.message : "The revision was refused.");
     } finally {

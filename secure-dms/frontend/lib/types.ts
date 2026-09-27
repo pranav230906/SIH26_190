@@ -148,6 +148,7 @@ export type DocumentDetail = DocumentSummary & {
   custodian_user_id?: string | null;
   custodian_name?: string | null;
   allowed_actions?: string[];
+  security_scan_message?: string | null;
 };
 
 export type DocumentVersionSummary = {
@@ -180,6 +181,7 @@ export type DocumentVersionDetail = DocumentVersionSummary & {
   text_excerpt: string | null;
   seal_algorithm: string | null;
   seal_value: string | null;
+  security_scan_message?: string | null;
 };
 
 export type VersionDiffChange = {
@@ -238,6 +240,7 @@ export type EvidenceDetail = EvidenceSummary & {
   last_integrity_status: string | null;
   custodian_user_id?: string | null;
   custodian_name?: string | null;
+  security_scan_message?: string | null;
 };
 
 export type EvidenceListResponse = {
@@ -277,6 +280,7 @@ export type ArtifactSummary = {
   hash_algorithm: string;
   created_by_name: string;
   created_at: string;
+  security_scan_message?: string | null;
 };
 
 export type ProvenanceNode = {

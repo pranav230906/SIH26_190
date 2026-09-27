@@ -55,10 +55,17 @@ Apply the schema and load fictional development accounts:
 
 ```powershell
 .\venv\Scripts\alembic.exe upgrade head
+.\venv\Scripts\python.exe -m scripts.reset_demo
 .\venv\Scripts\python.exe -m scripts.seed
 ```
 
 The seed script prints the shared development password. Those accounts are for local demonstration only.
+
+To reset and re-seed the demo dataset safely without dropping tables:
+```powershell
+.\venv\Scripts\python.exe -m scripts.reset_demo
+.\venv\Scripts\python.exe -m scripts.seed
+```
 
 ## Run
 

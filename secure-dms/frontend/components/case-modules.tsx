@@ -5,7 +5,6 @@ import { can, usePermissions } from "@/components/session-context";
 
 const PLACEHOLDERS = [
   { title: "Requests", note: "Access requests for this case are available below." },
-  { title: "Revisions", note: "Module coming next" },
   { title: "AI Assistant", note: "Module coming next" },
   { title: "Audit", note: "Case activity from the audit log is listed on this page." },
 ];
@@ -66,6 +65,12 @@ export function CaseModules({ caseId }: { caseId: string }) {
           ) : (
             <p className="mt-2 text-sm text-muted">Court packages are not available for this role.</p>
           )}
+        </li>
+        <li className="rounded-lg border border-line bg-white p-4">
+          <p className="text-sm font-medium">Evidence mapping</p>
+          <Link href={`/cases/${caseId}/evidence-mapping`} className="mt-3 inline-flex text-sm font-medium text-navy underline">
+            Open evidence graph
+          </Link>
         </li>
         {PLACEHOLDERS.map((item) => (
           <li key={item.title} className="rounded-lg border border-dashed border-line bg-white p-4">

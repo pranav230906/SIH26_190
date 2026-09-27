@@ -230,9 +230,9 @@ export function EvidenceDetailView() {
           evidenceId={record.id}
           sourceArtifactId={sourceArtifactId}
           onClose={() => setArtifactOpen(false)}
-          onCreated={async () => {
+          onCreated={async (scanNotice) => {
             setArtifactOpen(false);
-            setNotice("Derived artifact stored. The original evidence was not changed.");
+            setNotice(scanNotice ? `Derived artifact stored. ${scanNotice}` : "Derived artifact stored. The original evidence was not changed.");
             await reload();
           }}
           onError={setError}
@@ -390,7 +390,7 @@ function ArtifactDialog({
   evidenceId: string;
   sourceArtifactId: string | null;
   onClose: () => void;
-  onCreated: () => Promise<void>;
+  onCreated: (notice: string | null) => Promise<void>;
   onError: (message: string) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -413,8 +413,8 @@ function ArtifactDialog({
     if (description.trim()) form.set("description", description.trim());
     const path = sourceArtifactId ? `/api/artifacts/${sourceArtifactId}/artifacts` : `/api/evidence/${evidenceId}/artifacts`;
     try {
-      await uploadWithProgress<ArtifactSummary>(path, form, setProgress);
-      await onCreated();
+      const created = await uploadWithProgress<ArtifactSummary>(path, form, setProgress);
+      await onCreated(created.security_scan_message ?? null);
     } catch (caught) {
       onError(caught instanceof ApiClientError ? caught.message : "The artifact could not be stored.");
       setBusy(false);
