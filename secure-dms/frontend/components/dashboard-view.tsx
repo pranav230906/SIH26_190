@@ -272,7 +272,7 @@ function PanelBody({
       return <p className="px-5 py-4 text-sm text-muted">{panel.empty}</p>;
     }
     return (
-      <div className="grid gap-3 p-5">
+      <div className="grid sm:grid-cols-2 gap-4 p-5">
         {rows.map((item) => (
           <CaseCard key={item.id} item={item} />
         ))}

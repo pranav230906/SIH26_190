@@ -309,10 +309,7 @@ export function CasesView() {
         ) : null}
         {items.length > 0 ? (
           <>
-            <div className="hidden md:block">
-              <CaseTable items={items} />
-            </div>
-            <div className="grid gap-3 p-4 md:hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6 bg-slate-50/50">
               {items.map((item) => (
                 <CaseCard key={item.id} item={item} />
               ))}
