@@ -298,66 +298,169 @@ export function EvidenceDetailView() {
           <span className="inline-flex rounded-full bg-purple-100 px-2.5 py-1 text-xs font-semibold text-purple-700">Beta Feature</span>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="flex flex-col gap-8">
           <div>
             <h4 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-4">Evidence Relationships</h4>
-            <div className="bg-slate-50 rounded-lg border border-slate-200 p-6 flex items-center justify-center min-h-[250px]">
-               <div className="relative w-full max-w-sm">
-                  <div className="flex justify-between items-center relative">
-                    <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-500 flex items-center justify-center shadow-md z-10 relative">
-                       <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                       <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 whitespace-nowrap">Suspect A</span>
+            <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 flex flex-col items-center justify-center min-h-[450px] relative overflow-hidden">
+               {/* Grid background */}
+               <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f1a_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f1a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+               
+               <div className="relative w-full max-w-3xl flex flex-col items-center">
+                  
+                  {/* TOP TIER NODES */}
+                  <div className="flex w-full justify-around px-8 z-10 relative">
+                    {/* Node 1: Source Mobile Device */}
+                    <div className="relative group">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
+                      <div className="relative flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 shadow-2xl">
+                        <div className="bg-pink-500/20 p-2 rounded text-pink-400">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-200">Suspect's Mobile Device</p>
+                          <p className="text-[10px] text-slate-400">EVD-2026-0032</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 h-0.5 bg-slate-300 mx-2 relative">
-                       <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400 bg-slate-50 px-1">Linked</span>
-                    </div>
-                    <div className="w-20 h-20 rounded-lg bg-indigo-100 border-2 border-indigo-500 flex flex-col items-center justify-center shadow-md z-10 relative">
-                       <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                       <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 whitespace-nowrap">This Evidence</span>
-                    </div>
-                    <div className="flex-1 h-0.5 bg-slate-300 mx-2 relative">
-                       <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400 bg-slate-50 px-1">Mentions</span>
-                    </div>
-                    <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center shadow-md z-10 relative">
-                       <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                       <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 whitespace-nowrap">Location X</span>
+
+                    {/* Node 5: Financial Record */}
+                    <div className="relative group">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-amber-600 rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
+                      <div className="relative flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 shadow-2xl">
+                        <div className="bg-yellow-500/20 p-2 rounded text-yellow-400">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-200">Financial Transaction</p>
+                          <p className="text-[10px] text-slate-400">DOC-2026-0104</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Top Branching Connectors */}
+                  <div className="flex flex-col items-center -my-2 z-0 w-full relative">
+                    <div className="w-[380px] h-12 border-t-2 border-l-2 border-r-2 border-slate-600 rounded-t-xl relative mt-4">
+                        <div className="absolute -left-6 top-1/2 -translate-y-1/2 bg-slate-800 border border-slate-600 rounded-full px-2 py-0.5 text-[9px] font-semibold text-slate-300 transform -translate-x-1/2 whitespace-nowrap">
+                          Extracted Forensic Image
+                        </div>
+                        <div className="absolute -right-6 top-1/2 -translate-y-1/2 bg-slate-800 border border-slate-600 rounded-full px-2 py-0.5 text-[9px] font-semibold text-slate-300 transform translate-x-1/2 whitespace-nowrap">
+                          Cross-referenced IP
+                        </div>
+                    </div>
+                    <div className="w-px h-6 bg-slate-600 relative"></div>
+                  </div>
+
+                  {/* Node 2: Current Evidence (Center) */}
+                  <div className="relative group z-10 transform scale-110">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-500 animate-pulse"></div>
+                    <div className="relative flex items-center gap-3 bg-slate-900 border border-slate-700 rounded-lg px-5 py-4 shadow-2xl">
+                      <div className="bg-blue-500/20 p-2.5 rounded text-blue-400">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">This Evidence (Chat Log)</p>
+                        <p className="text-[10px] text-blue-300">ART-2026-0089</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Branching Connectors */}
+                  <div className="flex flex-col items-center -my-2 z-0 w-full relative">
+                    <div className="w-px h-6 bg-slate-600 relative"></div>
+                    <div className="w-[580px] h-12 border-b-2 border-l-2 border-r-2 border-slate-600 rounded-b-xl relative mb-4">
+                        <div className="absolute -left-6 top-1/2 -translate-y-1/2 bg-slate-800 border border-slate-600 rounded-full px-2 py-0.5 text-[9px] font-semibold text-slate-300 transform -translate-x-1/2 whitespace-nowrap z-10">
+                          Mentions Location
+                        </div>
+                        <div className="absolute -right-6 top-1/2 -translate-y-1/2 bg-slate-800 border border-slate-600 rounded-full px-2 py-0.5 text-[9px] font-semibold text-slate-300 transform translate-x-1/2 whitespace-nowrap z-10">
+                          Corroborates Timeline
+                        </div>
+                        <div className="absolute left-1/2 bottom-0 w-px h-6 bg-slate-600 translate-y-full"></div>
+                        <div className="absolute left-1/2 bottom-0 bg-slate-800 border border-slate-600 rounded-full px-2 py-0.5 text-[9px] font-semibold text-slate-300 transform -translate-x-1/2 translate-y-[20px] whitespace-nowrap z-10">
+                          Confirms Arrest
+                        </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Nodes Row */}
+                  <div className="flex w-full justify-between px-2 z-10 relative mt-8">
+                    {/* Node 3 */}
+                    <div className="relative group">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
+                      <div className="relative flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl">
+                        <div className="bg-emerald-500/20 p-1.5 rounded text-emerald-400">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-slate-200">Warehouse 42</p>
+                          <p className="text-[9px] text-slate-400">Entity Node</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Node 6: Arrest Report */}
+                    <div className="relative group">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
+                      <div className="relative flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl">
+                        <div className="bg-red-500/20 p-1.5 rounded text-red-400">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-slate-200">Arrest Report</p>
+                          <p className="text-[9px] text-slate-400">DOC-2026-0012</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Node 4 */}
+                    <div className="relative group">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
+                      <div className="relative flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl">
+                        <div className="bg-amber-500/20 p-1.5 rounded text-amber-400">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-slate-200">CCTV Footage</p>
+                          <p className="text-[9px] text-slate-400">EVD-2026-0045</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                </div>
             </div>
           </div>
+
           <div>
             <h4 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-4">AI Explainability & Significance</h4>
-            <div className="bg-slate-50 rounded-lg border border-slate-200 p-6 min-h-[250px] flex flex-col justify-center">
-               <div className="space-y-6">
-                 <div className="flex items-start gap-3">
-                    <div className="mt-0.5 rounded-full bg-purple-100 p-1.5 text-purple-600">
-                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-slate-50 rounded-lg border border-slate-200 p-5 flex flex-col items-start gap-3 shadow-sm hover:shadow-md transition">
+                    <div className="rounded-full bg-purple-100 p-2 text-purple-600">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800">High Relevance Score</p>
-                      <p className="text-xs text-slate-600 mt-1">This evidence strongly correlates with timestamp anomalies found in CCTV footage EVD-2026-000042.</p>
+                        <p className="text-sm font-bold text-slate-800">High Relevance Score</p>
+                        <p className="text-xs text-slate-600 mt-2 leading-relaxed">This evidence strongly correlates with timestamp anomalies found in CCTV footage EVD-2026-000042 and Financial Transaction DOC-2026-0104.</p>
                     </div>
-                 </div>
-                 <div className="flex items-start gap-3">
-                    <div className="mt-0.5 rounded-full bg-blue-100 p-1.5 text-blue-600">
-                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">Entity Extraction</p>
-                      <p className="text-xs text-slate-600 mt-1">Automatically detected 3 suspect names and 1 primary location matching the active case file.</p>
-                    </div>
-                 </div>
-                 <div className="flex items-start gap-3">
-                    <div className="mt-0.5 rounded-full bg-emerald-100 p-1.5 text-emerald-600">
-                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <div className="bg-slate-50 rounded-lg border border-slate-200 p-5 flex flex-col items-start gap-3 shadow-sm hover:shadow-md transition">
+                    <div className="rounded-full bg-blue-100 p-2 text-blue-600">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800">Authenticity Confidence: 99.2%</p>
-                      <p className="text-xs text-slate-600 mt-1">No deepfake signatures or digital tampering detected in the metadata or bitstream analysis.</p>
+                        <p className="text-sm font-bold text-slate-800">Entity Extraction</p>
+                        <p className="text-xs text-slate-600 mt-2 leading-relaxed">Automatically detected 3 suspect names and 1 primary location matching the active case file, linking it directly to Warehouse 42.</p>
                     </div>
-                 </div>
-               </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg border border-slate-200 p-5 flex flex-col items-start gap-3 shadow-sm hover:shadow-md transition">
+                    <div className="rounded-full bg-emerald-100 p-2 text-emerald-600">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-slate-800">Authenticity Confidence: 99.2%</p>
+                        <p className="text-xs text-slate-600 mt-2 leading-relaxed">No deepfake signatures or digital tampering detected in the metadata or bitstream analysis of the extracted forensic image.</p>
+                    </div>
+                </div>
             </div>
           </div>
         </div>

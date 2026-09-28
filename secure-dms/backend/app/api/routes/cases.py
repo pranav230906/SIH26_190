@@ -155,19 +155,14 @@ def read_case_relationship_graph(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ) -> GraphResponse:
-    from app.services.audit_service import record_audit_event
-    from app.models.case import Case
-    from app.services.case_service import db_case
-    case = db_case(db, case_key)
+    from app.services.audit_service import record
+    from app.services.case_service import resolve_case
+    case = resolve_case(db, case_key)
     if case:
-        record_audit_event(
-            db,
-            user=current_user,
-            event_type="EVIDENCE_GRAPH_VIEWED",
-            severity="INFO",
+        record(
+            "EVIDENCE_GRAPH_VIEWED",
+            user_id=current_user.id,
             case_id=case.id,
-            description="Viewed evidence relationship graph.",
-            ip_address="",
-            user_agent=""
+            metadata={"description": "Viewed evidence relationship graph."}
         )
     return get_relationship_graph(db, current_user, case_key)

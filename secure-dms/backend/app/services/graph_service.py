@@ -24,9 +24,10 @@ def get_relationship_graph(db: Session, user: User, case_key: str) -> GraphRespo
     edges = []
 
     def add_node(n_id, n_type, name, status, date=None, detail_url=None):
-        if n_id not in nodes:
-            nodes[n_id] = GraphNode(
-                id=str(n_id),
+        n_id_str = str(n_id)
+        if n_id_str not in nodes:
+            nodes[n_id_str] = GraphNode(
+                id=n_id_str,
                 type=n_type,
                 name=name,
                 status=status,
@@ -37,16 +38,18 @@ def get_relationship_graph(db: Session, user: User, case_key: str) -> GraphRespo
             )
 
     def add_edge(e_id, source, target, rel, explanation):
-        if str(source) in nodes and str(target) in nodes:
+        s_str = str(source)
+        t_str = str(target)
+        if s_str in nodes and t_str in nodes:
             edges.append(GraphEdge(
                 id=e_id,
-                source=str(source),
-                target=str(target),
+                source=s_str,
+                target=t_str,
                 relationship=rel,
                 explanation=explanation
             ))
-            nodes[str(source)].relationship_count += 1
-            nodes[str(target)].relationship_count += 1
+            nodes[s_str].relationship_count += 1
+            nodes[t_str].relationship_count += 1
 
     # Add Case Node
     add_node(case.id, "CASE", f"Case {case.case_number}", case.status, case.created_at.isoformat() if case.created_at else None, f"/cases/{case.id}")
