@@ -8,7 +8,7 @@ import type { TokenResponse } from "@/lib/types";
 import { Mark } from "@/components/mark";
 
 const DEMO_USERS = [
-  "admin1",
+  "demo_admin",
   "police1",
   "supervisor1",
   "forensic1",
@@ -57,13 +57,13 @@ export function LoginForm() {
         <div className="relative z-10 flex items-center gap-3">
           <Mark tone="light" />
           <div>
-            <p className="text-xs font-bold tracking-[0.2em] uppercase text-slate-300">Secure DMS</p>
+            <p className="text-xs font-bold tracking-[0.2em] uppercase text-slate-300">RAKSHA</p>
             <p className="text-sm font-medium text-slate-400">Classified Workspace</p>
           </div>
         </div>
         <div className="relative z-10 max-w-md">
           <h1 className="text-4xl leading-tight font-bold text-white tracking-wide">
-             Authorized Document Management System
+             Records and Access Knowledge System for Secure Handling & Archives
           </h1>
           <div className="w-16 h-1.5 bg-blue-500 mt-6 mb-4 rounded-full"></div>
           <p className="mt-4 text-base leading-relaxed text-slate-300">
@@ -71,8 +71,8 @@ export function LoginForm() {
           </p>
         </div>
         <div className="relative z-10">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Development Prototype</p>
-          <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-1">Not for operational use</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500"></p>
+          <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-1"></p>
         </div>
       </aside>
 
@@ -81,7 +81,7 @@ export function LoginForm() {
           <div className="mb-10 flex items-center gap-3 lg:hidden justify-center">
             <Mark />
             <div>
-              <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">Secure DMS</p>
+              <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">RAKSHA</p>
               <p className="text-sm font-medium text-slate-900">Classified Workspace</p>
             </div>
           </div>

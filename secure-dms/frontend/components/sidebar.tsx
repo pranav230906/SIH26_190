@@ -37,7 +37,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <div className="flex flex-shrink-0 items-center gap-3 border-b border-slate-800/60 px-6 py-5 bg-[#0B1121]">
           <Mark tone="light" />
           <div>
-            <p className="text-[15px] font-semibold tracking-wide text-white">Secure DMS</p>
+            <p className="text-[15px] font-semibold tracking-wide text-white">RAKSHA</p>
             <p className="text-[11px] font-medium tracking-wider text-slate-400 uppercase">Legal Platform</p>
           </div>
         </div>
@@ -92,12 +92,6 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
             })}
           </div>
         </nav>
-        <div className="border-t border-slate-800/60 p-4 bg-[#0B1121]">
-          <div className="rounded-lg bg-slate-800/40 p-3">
-            <p className="text-xs font-medium text-slate-300">Prototype Environment</p>
-            <p className="mt-1 text-[10px] text-slate-500">Fictional demonstration data only</p>
-          </div>
-        </div>
       </aside>
     </>
   );

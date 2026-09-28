@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Secure DMS",
-    template: "%s · Secure DMS",
+    default: "RAKSHA",
+    template: "%s · RAKSHA",
   },
   description: "Case-centric document management prototype for investigation and judicial workflows.",
 };

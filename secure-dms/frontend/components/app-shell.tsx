@@ -64,7 +64,7 @@ function titleFor(pathname: string): string {
   if (pathname.startsWith("/departments")) {
     return "Departments";
   }
-  return "Secure DMS";
+  return "RAKSHA";
 }
 
 export function AppShell({ user, children }: { user: MeResponse; children: React.ReactNode }) {
