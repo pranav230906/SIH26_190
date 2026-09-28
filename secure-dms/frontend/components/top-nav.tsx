@@ -112,7 +112,7 @@ export function TopNav({
           Sign out
         </button>
       </div>
-      <dialog ref={dialogRef} className="w-[min(100%,24rem)] rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl backdrop:bg-slate-900/50 open:animate-in open:fade-in open:zoom-in-95">
+      <dialog ref={dialogRef} className="w-[min(100%,24rem)] fixed inset-0 m-auto rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl backdrop:bg-slate-900/50 open:animate-in open:fade-in open:zoom-in-95">
         <div className="flex items-center gap-3 text-red-600 mb-2">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
           <h2 className="text-lg font-bold">Terminate Session</h2>

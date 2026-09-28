@@ -109,7 +109,7 @@ export function LoginForm() {
               </div>
               <div>
                 <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Passphrase
+                  Password
                 </label>
                 <div className="mt-2 flex gap-2">
                   <input
@@ -160,24 +160,6 @@ export function LoginForm() {
               </button>
             </form>
           </div>
-
-          <details className="mt-6 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
-            <summary className="cursor-pointer font-bold text-slate-700 uppercase tracking-wider text-xs">Development Credentials</summary>
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <p className="leading-relaxed text-slate-500 font-medium text-xs">
-                These accounts are fictional and for local demonstration only. Every account uses the passphrase{" "}
-                <span className="font-mono text-blue-600 bg-blue-50 px-1 py-0.5 rounded font-bold">DevOnly#2026</span>.
-              </p>
-              <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 font-mono text-xs text-slate-700 font-bold">
-                {DEMO_USERS.map((name) => (
-                  <li key={name} className="flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"></span>
-                     {name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </details>
         </div>
       </main>
     </div>

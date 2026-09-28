@@ -37,7 +37,7 @@ export function ConfirmDialog({
   return (
     <dialog
       ref={ref}
-      className="w-[min(100%,28rem)] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl backdrop:bg-slate-900/50 open:animate-in open:fade-in open:zoom-in-95 text-slate-900"
+      className="w-[min(100%,28rem)] fixed inset-0 m-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl backdrop:bg-slate-900/50 open:animate-in open:fade-in open:zoom-in-95 text-slate-900"
       onClose={onCancel}
     >
       <div className="flex items-center gap-3 text-slate-900 mb-2">
