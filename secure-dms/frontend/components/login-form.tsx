@@ -160,6 +160,16 @@ export function LoginForm() {
               </button>
             </form>
           </div>
+          <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50/50 p-5 shadow-sm text-sm">
+            <h3 className="font-semibold text-blue-900 mb-2 uppercase tracking-wide text-xs">Prototype Accounts</h3>
+            <p className="text-slate-600 mb-3 text-xs leading-relaxed">
+              Use <code className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200">demo_admin</code>, <code className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200">officer1</code>, <code className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200">supervisor1</code>, <code className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200">forensic1</code>, <code className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200">prosecutor1</code>, or <code className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200">judicial1</code> to sign in.
+            </p>
+            <div className="flex items-center gap-2 text-slate-700 bg-white p-2 rounded-lg border border-blue-100 font-mono text-xs shadow-sm">
+              <span className="font-bold uppercase text-[10px] tracking-wider text-slate-400">Password</span>
+              <span>DevOnly#2026</span>
+            </div>
+          </div>
         </div>
       </main>
     </div>

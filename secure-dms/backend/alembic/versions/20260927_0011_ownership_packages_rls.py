@@ -255,10 +255,14 @@ def upgrade() -> None:
         DO $$
         BEGIN
           BEGIN
-            EXECUTE 'ALTER ROLE secure_dms BYPASSRLS';
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'secure_dms') THEN
+              EXECUTE 'ALTER ROLE secure_dms BYPASSRLS';
+            END IF;
           EXCEPTION
             WHEN insufficient_privilege THEN
               RAISE NOTICE 'Run ALTER ROLE secure_dms BYPASSRLS as a superuser before seeding.';
+            WHEN undefined_object THEN
+              RAISE NOTICE 'Role secure_dms does not exist.';
           END;
         END $$;
         """
